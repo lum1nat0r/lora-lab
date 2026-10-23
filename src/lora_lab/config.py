@@ -6,12 +6,15 @@ that contains ``config/``), not to the YAML file itself.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class Binding(BaseModel):
@@ -212,6 +215,18 @@ def _merge_loras(
 
     raw = _read_yaml(source) or {}
     entries = [LoraEntry(**item) for item in raw.get("loras", [])]
+
+    generated = source.name == "loras.yaml" and source.parent.name == "local"
+    if valid_subjects is not None and (generated or grid.loras_file):
+        unknown = [entry for entry in entries if entry.subject not in valid_subjects]
+        if unknown:
+            logger.warning(
+                "ignoring %d LoRA(s) with no matching subject: %s",
+                len(unknown),
+                ", ".join(entry.id for entry in unknown[:8]),
+            )
+            entries = [entry for entry in entries if entry.subject in valid_subjects]
+
     return grid.model_copy(update={"loras": entries})
 
 

@@ -80,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
     discover.add_argument("--loras", default="/models/loras")
     discover.add_argument("--apply", action="store_true", help="write config/local/*.yaml")
     discover.add_argument("--check", action="store_true", help="also run the held-out check")
+    discover.add_argument(
+        "--all-loras", action="store_true", help="include LoRAs that match no subject"
+    )
 
     imp = sub.add_parser("import-fizgig", help="read training metadata from a LoRA file")
     imp.add_argument("path")
@@ -91,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
+
+    if args.command == "discover":
+        # deliberately before load_project: discover is the tool you use to
+        # repair a broken config, so it must not depend on a valid one
+        return _discover(root, args)
 
     if args.command == "serve":
         # A broken config must not turn into a Docker restart loop: the web UI
@@ -127,10 +135,9 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(Path(args.path), Path(args.against) if args.against else None)
     if args.command == "check-refs":
         return _check_refs(project)
-    if args.command == "discover":
-        return _discover(project, args)
     if args.command == "import-fizgig":
         return _import_fizgig(Path(args.path), args.json)
+
     if args.command == "serve":
         from .web.app import serve
 
@@ -220,7 +227,7 @@ def check_paths(project: ProjectConfig) -> None:
                 print(f"WARNING     {subject.id}: reference and training folder overlap")
 
 
-def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
+def _discover(root: Path, args: argparse.Namespace) -> int:
     from .discover import (
         apply_loras,
         apply_subjects,
@@ -262,8 +269,20 @@ def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
     lora_root = Path(args.loras)
     loras: list[dict] = []
     if lora_root.is_dir():
-        loras = discover_loras(lora_root, subjects=[item["id"] for item in subjects])
+        skipped: list[str] = []
+        loras = discover_loras(
+            lora_root,
+            subjects=[item["id"] for item in subjects],
+            include_unknown=args.all_loras,
+            skipped=skipped,
+        )
         print(f"# {len(loras)} LoRA files under {lora_root}")
+        if skipped:
+            print(f"# {len(skipped)} skipped (no matching subject)")
+            for name in skipped[:10]:
+                print(f"#   {name}")
+            if len(skipped) > 10:
+                print(f"#   ... {len(skipped) - 10} more")
         for item in loras:
             print(
                 f"#   {item['id']:<32} ep{item['epoch']:<4} rank={item['rank'] or '?'}"
@@ -274,7 +293,7 @@ def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
         print(f"# loras path not found: {lora_root}", file=sys.stderr)
 
     if args.apply:
-        local = project.root / "config" / "local"
+        local = root / "config" / "local"
         apply_subjects(local / "subjects.yaml", subjects)
         print(f"wrote {local / 'subjects.yaml'}")
         if loras:
@@ -285,7 +304,7 @@ def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
         from .discover import apply_grid, grid_source
 
         defaults = os.environ.get("LORA_LAB_DEFAULTS")
-        source = grid_source(project.root, Path(defaults) if defaults else None)
+        source = grid_source(root, Path(defaults) if defaults else None)
         if source is not None:
             apply_grid(grid_path, source, {item["id"] for item in subjects})
             print(f"wrote {grid_path} (from {source})")

@@ -47,7 +47,7 @@ def test_discover_loras_matches_subject_and_epoch(tmp_path: Path) -> None:
     fake_lora(root / "moss" / "lisalu.le" / "lisalule-000067.safetensors", {"ss_trigger_word": "lisalule"})
     fake_lora(root / "moss" / "other" / "mystery.safetensors", {})
 
-    loras = discover_loras(root, subjects=["lisalule"])
+    loras = discover_loras(root, subjects=["lisalule"], include_unknown=True)
     by_id = {item["id"]: item for item in loras}
     assert "lisalule_ep66" in by_id
     assert by_id["lisalule_ep66"]["subject"] == "lisalule"
@@ -143,3 +143,84 @@ def test_apply_grid_repairs_inconsistent_existing_grid(tmp_path: Path, root: Pat
     data = yaml.safe_load(target.read_text())
     assert data["loras"] == []
     assert data["loras_file"] == "config/local/loras.yaml"
+
+
+def test_unknown_subjects_in_generated_loras_are_skipped(tmp_path: Path, root: Path) -> None:
+    import yaml
+
+    target = tmp_path / "project"
+    _copy_project(root, target)
+    (target / "config" / "local").mkdir()
+
+    (target / "config" / "local" / "subjects.yaml").write_text(
+        yaml.safe_dump({"subjects": [{"id": "real", "trigger": "real"}]})
+    )
+    (target / "config" / "local" / "loras.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "loras": [
+                    {"id": "real_ep1", "subject": "real", "file": "r/1.safetensors", "epoch": 1},
+                    {"id": "wan", "subject": "Wan", "file": "wan.safetensors", "epoch": 1},
+                ]
+            }
+        )
+    )
+
+    project = load_project(target)
+    assert [lora.id for lora in project.grid.loras] == ["real_ep1"]
+
+
+def test_discover_skips_unmatched_loras(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    fake_lora(root / "moss" / "subject_a" / "subject_a-000010.safetensors", {"ss_trigger_word": "subject_a"})
+    fake_lora(root / "wan" / "Wan2.1-000010.safetensors", {"ss_trigger_word": "Wan"})
+
+    from lora_lab.discover import discover_loras
+
+    skipped: list[str] = []
+    loras = discover_loras(root, subjects=["subject_a"], skipped=skipped)
+    assert [item["id"] for item in loras] == ["subject_a_ep10"]
+    assert skipped == ["wan/Wan2.1-000010.safetensors"]
+
+    everything = discover_loras(root, subjects=["subject_a"], include_unknown=True)
+    assert len(everything) == 2
+
+
+def test_discover_repairs_a_broken_project(tmp_path: Path, root: Path, monkeypatch) -> None:
+    import argparse
+
+    import yaml
+
+    from lora_lab.cli import _discover
+
+    app = tmp_path / "app"
+    (app / "config" / "local").mkdir(parents=True)
+    (app / "config" / "local" / "subjects.yaml").write_text(
+        yaml.safe_dump({"subjects": [{"id": "subject_a", "trigger": "subject_a"}]})
+    )
+    (app / "config" / "local" / "loras.yaml").write_text(
+        yaml.safe_dump(
+            {"loras": [{"id": "wan", "subject": "Wan", "file": "wan.safetensors", "epoch": 1}]}
+        )
+    )
+
+    datasets = tmp_path / "datasets"
+    make_image(datasets / "subject_a" / "refs" / "1.png")
+    make_image(datasets / "subject_a" / "train" / "1.png")
+
+    loras = tmp_path / "loras"
+    fake_lora(loras / "moss" / "subject_a" / "subject_a-000010.safetensors", {"ss_trigger_word": "subject_a"})
+    fake_lora(loras / "wan" / "Wan2.1-000010.safetensors", {"ss_trigger_word": "Wan"})
+
+    monkeypatch.setenv("LORA_LAB_DEFAULTS", str(root / "config"))
+    args = argparse.Namespace(
+        datasets=str(datasets), loras=str(loras), apply=True, check=False, all_loras=False
+    )
+
+    assert _discover(app, args) == 0
+
+    written = yaml.safe_load((app / "config" / "local" / "loras.yaml").read_text())
+    assert [item["id"] for item in written["loras"]] == ["subject_a_ep10"]
+    grid = yaml.safe_load((app / "config" / "local" / "grid.yaml").read_text())
+    assert grid["loras"] == []
+    assert grid["loras_file"] == "config/local/loras.yaml"

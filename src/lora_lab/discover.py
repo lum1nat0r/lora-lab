@@ -86,8 +86,19 @@ def discover_subjects(root: Path) -> list[dict[str, Any]]:
     return out
 
 
-def discover_loras(lora_root: Path, *, subjects: list[str] | None = None) -> list[dict[str, Any]]:
-    """Walk a ComfyUI ``models/loras`` tree and describe every LoRA file."""
+def discover_loras(
+    lora_root: Path,
+    *,
+    subjects: list[str] | None = None,
+    include_unknown: bool = False,
+    skipped: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Walk a ComfyUI ``models/loras`` tree and describe the relevant LoRAs.
+
+    A ``models/loras`` folder usually holds more than one family — video LoRAs,
+    style LoRAs, upscalers. Only files whose trigger or path matches a
+    discovered subject are returned, unless ``include_unknown`` is set.
+    """
 
     lora_root = Path(lora_root)
     if not lora_root.is_dir():
@@ -108,8 +119,12 @@ def discover_loras(lora_root: Path, *, subjects: list[str] | None = None) -> lis
         matched = _match_subject(candidates, known)
         if matched:
             subject = matched
-        else:
+        elif include_unknown:
             subject = slug(trigger) if trigger else slug(file.parent.name)
+        else:
+            if skipped is not None:
+                skipped.append(file.relative_to(lora_root).as_posix())
+            continue
 
         stem = re.sub(r"-\d{6}(-state)?$", "", file.stem)
         lora_id = f"{slug(stem)}_ep{epoch}" if epoch else slug(stem)
