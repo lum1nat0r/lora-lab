@@ -72,6 +72,7 @@ def weighted_adherence(
 class AdherenceScorer:
     name = "adherence"
     version = "v1"
+    axes = ("adherence",)
 
     def __init__(self, judge: Judge, attributes_by_scenario: dict[str, list[Any]]) -> None:
         self.judge = judge

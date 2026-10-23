@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Report{% endblock %}
+{% block content %}
+{% if not payload.results %}
+  <p class="muted">Keine gescorten Bilder. Erst <code>lora-lab score</code> laufen lassen.</p>
+{% else %}
+
+<h2>Ranking <span class="muted" style="text-transform:none;letter-spacing:0">· {{ payload.samples }} Bilder · LCB95</span></h2>
+<table>
+  <tr>
+    <th>#</th><th>Betriebspunkt</th><th>n</th><th>mean</th><th>LCB</th><th>robust</th>
+    <th>stabil</th><th>P(Rang 1)</th><th>yield</th><th>fail</th><th>scen</th>
+  </tr>
+  {% for r in payload.results %}
+  {% set op = r.op %}
+  <tr>
+    <td class="num">{{ loop.index }}</td>
+    <td>{{ r.lora_id }} <span class="muted">ep{{ r.epoch }} · s{{ r.strength }}</span></td>
+    <td class="num">{{ r.n }}</td>
+    <td class="num">{{ '%.3f'|format(r.mean) }}</td>
+    <td class="num">{{ '%.3f'|format(r.lcb) }}</td>
+    <td class="num">{{ '%.3f'|format(r.robustness) }}</td>
+    <td class="num">{% if r.stability is not none %}{{ '%.2f'|format(r.stability) }}{% else %}–{% endif %}</td>
+    <td class="num">{{ '%.0f%%'|format(payload.top_rank.get(op, 0) * 100) }}</td>
+    <td class="num">{{ '%.0f%%'|format(r.yield_rate * 100) }}</td>
+    <td class="num">{{ '%.0f%%'|format(r.fail_rate * 100) }}</td>
+    <td class="num">{{ r.scenarios }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="muted">Rangfolge nach unterer Konfidenzgrenze. P(Rang 1) ist die Häufigkeit,
+mit der der Betriebspunkt unter perturbierten Achsengewichten vorn bleibt.</p>
+
+<h2>Szenario-Matrix</h2>
+<table class="matrix">
+  <tr><th>Betriebspunkt</th>{% for s in payload.scenario_names %}<th>{{ s }}</th>{% endfor %}</tr>
+  {% for op in payload.operating_points %}
+  <tr>
+    <td>{{ op }}</td>
+    {% for s in payload.scenario_names %}
+      {% set cell = payload.matrix.get(op, {}).get(s) %}
+      {% if cell %}<td style="background: {{ cell.shade }}">{{ '%.2f'|format(cell.mean) }}</td>
+      {% else %}<td class="dim">–</td>{% endif %}
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Strength-Kurve</h2>
+<table>
+  <tr><th>LoRA</th><th>Werte</th></tr>
+  {% for lora, points in payload.strength_series.items() %}
+  <tr><td>{{ lora }}</td>
+    <td class="num">{% for p in points %}s{{ p.strength }}: {{ '%.2f'|format(p.mean) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Epochen-Kurve</h2>
+<table>
+  <tr><th>LoRA</th><th>Werte</th></tr>
+  {% for lora, points in payload.epoch_series.items() %}
+  <tr><td>{{ lora }}</td>
+    <td class="num">{% for p in points %}ep{{ p.epoch }}: {{ '%.2f'|format(p.mean) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endif %}
+{% endblock %}

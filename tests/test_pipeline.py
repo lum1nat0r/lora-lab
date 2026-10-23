@@ -69,7 +69,7 @@ def test_score_and_report_roundtrip(root: Path, tmp_path: Path) -> None:
     assert report["samples"] == 8
     assert len(report["results"]) == 2
     assert report["results"][0]["lcb"] <= report["results"][0]["mean"] + 1e-9
-    assert set(report["rank_stability"]) == {"lora_a", "lora_b"}
+    assert set(report["rank_stability"]) == {"lora_a@ep20@s1", "lora_b@ep20@s1"}
 
     samples = [
         Sample(lora_id="a", subject="s", scenario="x", seed=1, quality=0.9),

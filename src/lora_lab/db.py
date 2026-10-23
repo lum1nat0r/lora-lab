@@ -227,6 +227,19 @@ class Store:
         )
         self.conn.commit()
 
+    def has_axes(
+        self, image_id: int, scorer: str, version: str, axes: tuple[str, ...]
+    ) -> bool:
+        if not axes:
+            return False
+        placeholders = ",".join("?" for _ in axes)
+        row = self.conn.execute(
+            f"SELECT COUNT(DISTINCT axis) AS n FROM scores WHERE image_id=? AND scorer=?"
+            f" AND version=? AND axis IN ({placeholders})",
+            (image_id, scorer, version, *axes),
+        ).fetchone()
+        return bool(row) and int(row["n"]) == len(axes)
+
     def images_for_run(self, run_id: int | None = None) -> list[sqlite3.Row]:
         if run_id is None:
             query = (

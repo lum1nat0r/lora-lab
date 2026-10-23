@@ -47,6 +47,40 @@ def create_app(project: ProjectConfig) -> FastAPI:
             },
         )
 
+    @app.get("/report", response_class=HTMLResponse)
+    def report(request: Request, run: str | None = None) -> HTMLResponse:
+        from ..analyze.report import build_report
+
+        db = store()
+        try:
+            run_id = None
+            if run:
+                row = db.run_by_name(run)
+                run_id = int(row["id"]) if row else None
+            payload = build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
+            runs = [dict(r) for r in db.runs()]
+        finally:
+            db.close()
+        return TEMPLATES.TemplateResponse(
+            request,
+            "report.html",
+            {"project": project, "payload": payload, "runs": runs, "selected": run},
+        )
+
+    @app.get("/api/report")
+    def api_report(run: str | None = None) -> dict[str, object]:
+        from ..analyze.report import build_report
+
+        db = store()
+        try:
+            run_id = None
+            if run:
+                row = db.run_by_name(run)
+                run_id = int(row["id"]) if row else None
+            return build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
+        finally:
+            db.close()
+
     @app.get("/api/summary")
     def summary() -> dict[str, object]:
         db = store()

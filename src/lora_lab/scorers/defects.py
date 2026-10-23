@@ -89,6 +89,7 @@ class HealthScorer:
 
     name = "health"
     version = "v1"
+    axes = ("quality",)
 
     def __init__(
         self, *, target_megapixels: float = 1.0, target_sharpness: float = 6.0

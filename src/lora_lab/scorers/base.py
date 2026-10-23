@@ -33,6 +33,7 @@ class Score:
 class Scorer(Protocol):
     name: str
     version: str
+    axes: tuple[str, ...]
 
     def score(self, image: ImageRef) -> list[Score]: ...
 

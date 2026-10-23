@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from ..db import Store
-from .stats import AXES, LoraResult, Sample, analyse_all, rank_stability
+from .stats import AXES, LoraResult, Sample, analyse_all, image_utility, mean, rank_stability
 
 HEADER = (
     f"{'#':>2}  {'LoRA':<28} {'subj':<12} {'ep':>4} {'s':>4} {'n':>5} "
@@ -34,6 +34,54 @@ def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
     return samples
 
 
+def operating_point(result: LoraResult) -> str:
+    return f"{result.lora_id}@ep{result.epoch}@s{result.strength:g}"
+
+
+def scenario_breakdown(
+    samples: list[Sample], weights: dict[str, float] | None = None
+) -> list[dict]:
+    acc: dict[tuple[str, int, float, str], list[float]] = {}
+    for sample in samples:
+        utility = image_utility(sample, weights)
+        if utility is None:
+            continue
+        key = (sample.lora_id, sample.epoch, sample.strength, sample.scenario)
+        acc.setdefault(key, []).append(utility)
+    rows = []
+    for (lora_id, epoch, strength, scenario), values in sorted(acc.items()):
+        rows.append(
+            {
+                "op": f"{lora_id}@ep{epoch}@s{strength:g}",
+                "lora_id": lora_id,
+                "epoch": epoch,
+                "strength": strength,
+                "scenario": scenario,
+                "mean": mean(values),
+                "n": len(values),
+            }
+        )
+    return rows
+
+
+def _shade(value: float) -> str:
+    value = max(0.0, min(1.0, value))
+    return f"hsl({int(value * 120)}, 42%, {22 + value * 14:.0f}%)"
+
+
+def _series(rows: list[dict], field: str) -> dict[str, list[dict]]:
+    acc: dict[str, dict[float, list[float]]] = {}
+    for row in rows:
+        acc.setdefault(row["lora_id"], {}).setdefault(row[field], []).append(row["mean"])
+    out: dict[str, list[dict]] = {}
+    for lora_id, buckets in acc.items():
+        out[lora_id] = [
+            {field: key, "mean": mean(values), "n": len(values)}
+            for key, values in sorted(buckets.items())
+        ]
+    return out
+
+
 def format_results(results: list[LoraResult]) -> str:
     lines = [HEADER, "-" * len(HEADER)]
     for index, result in enumerate(results, start=1):
@@ -58,16 +106,18 @@ def build_report(
 ) -> dict:
     samples = samples_from_store(store, run_id)
     results = analyse_all(samples, weights=weights, bootstrap=bootstrap)
-    sums = {r.lora_id: {axis: 0.0 for axis in AXES} for r in results}
-    seen = {r.lora_id: {axis: 0 for axis in AXES} for r in results}
+    keys = {operating_point(r): r for r in results}
+    sums = {key: {axis: 0.0 for axis in AXES} for key in keys}
+    seen = {key: {axis: 0 for axis in AXES} for key in keys}
     for sample in samples:
-        if sample.lora_id not in sums:
+        key = f"{sample.lora_id}@ep{sample.epoch}@s{sample.strength:g}"
+        if key not in sums:
             continue
         for axis in AXES:
             value = getattr(sample, axis)
             if value is not None:
-                sums[sample.lora_id][axis] += value
-                seen[sample.lora_id][axis] += 1
+                sums[key][axis] += value
+                seen[key][axis] += 1
     components = {
         name: {
             axis: (sums[name][axis] / seen[name][axis] if seen[name][axis] else None)
@@ -76,10 +126,33 @@ def build_report(
         for name in sums
     }
 
+    breakdown = scenario_breakdown(samples, weights)
+    scenarios = sorted({row["scenario"] for row in breakdown})
+    matrix: dict[str, dict[str, dict]] = {}
+    for row in breakdown:
+        matrix.setdefault(row["op"], {})[row["scenario"]] = {
+            "mean": row["mean"],
+            "n": row["n"],
+            "shade": _shade(row["mean"]),
+        }
+
+    op_order = [operating_point(r) for r in results]
+    ranks = rank_stability(components, draws=stability_draws) if results else {}
+    top_rank = {
+        name: sum(p for rank, p in values.items() if rank <= 1.5)
+        for name, values in ranks.items()
+    }
     return {
         "samples": len(samples),
+        "operating_points": op_order,
+        "scenario_names": scenarios,
+        "matrix": matrix,
+        "breakdown": breakdown,
+        "strength_series": _series(breakdown, "strength"),
+        "epoch_series": _series(breakdown, "epoch"),
         "results": [
             {
+                "op": operating_point(r),
                 "lora_id": r.lora_id,
                 "subject": r.subject,
                 "epoch": r.epoch,
@@ -97,7 +170,8 @@ def build_report(
             }
             for r in results
         ],
-        "rank_stability": rank_stability(components, draws=stability_draws) if results else {},
+        "rank_stability": ranks,
+        "top_rank": top_rank,
     }
 
 

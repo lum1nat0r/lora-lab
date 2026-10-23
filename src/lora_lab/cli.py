@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -50,6 +51,15 @@ def main(argv: list[str] | None = None) -> int:
     score.add_argument("--run", default=None)
     score.add_argument("--identity", action="store_true", help="ArcFace subject fidelity")
     score.add_argument("--verdicts", default=None, help="JSON file with attribute verdicts")
+    score.add_argument(
+        "--vlm-url",
+        default=os.environ.get("VLM_JUDGE_URL") or None,
+        help="OpenAI-compatible endpoint, e.g. http://gpu:8000/v1",
+    )
+    score.add_argument("--vlm-model", default=os.environ.get("VLM_JUDGE_MODEL") or None)
+    score.add_argument("--vlm-api-key", default=os.environ.get("VLM_API_KEY") or None)
+    score.add_argument("--only-missing", action="store_true", help="skip images that already have the axis")
+    score.add_argument("--max-side", type=int, default=None, help="downscale images before sending")
     score.add_argument("--limit", type=int, default=None)
     score.add_argument("--target-megapixels", type=float, default=1.0)
     score.add_argument("--quiet", action="store_true")
@@ -61,6 +71,9 @@ def main(argv: list[str] | None = None) -> int:
 
     audit = sub.add_parser("audit", help="audit a dataset folder")
     audit.add_argument("path")
+    audit.add_argument("--against", default=None, help="check duplicates against another folder")
+
+    sub.add_parser("check-refs", help="verify reference images are held out from training")
 
     imp = sub.add_parser("import-fizgig", help="read training metadata from a LoRA file")
     imp.add_argument("path")
@@ -92,7 +105,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "report":
         return _report(project, args)
     if args.command == "audit":
-        return _audit(Path(args.path))
+        return _audit(Path(args.path), Path(args.against) if args.against else None)
+    if args.command == "check-refs":
+        return _check_refs(project)
     if args.command == "import-fizgig":
         return _import_fizgig(Path(args.path), args.json)
     if args.command == "serve":
@@ -168,11 +183,55 @@ def _doctor(project: ProjectConfig) -> int:
 
 
 def check_paths(project: ProjectConfig) -> None:
+    from .heldout import contains, count_images
+
     for subject in project.subjects.values():
-        if subject.ref_dir:
-            path = project.path(subject.ref_dir)
-            mark = "ok" if path.exists() else "missing"
-            print(f"refs        {subject.id:<16} {mark:<8} {path}")
+        for kind, value in (("refs", subject.ref_dir), ("train", subject.train_dir)):
+            if not value:
+                continue
+            path = project.path(value)
+            if path.exists():
+                print(f"{kind:<11} {subject.id:<16} ok       {count_images(path):>5} images  {path}")
+            else:
+                print(f"{kind:<11} {subject.id:<16} MISSING            {path}")
+        if subject.ref_dir and subject.train_dir:
+            if contains(project.path(subject.ref_dir), project.path(subject.train_dir)):
+                print(f"WARNING     {subject.id}: reference and training folder overlap")
+
+
+def _check_refs(project: ProjectConfig) -> int:
+    from .heldout import overlap
+
+    checked = 0
+    leaks = 0
+    skipped = 0
+    for subject in project.subjects.values():
+        if not (subject.ref_dir and subject.train_dir):
+            skipped += 1
+            continue
+        ref = project.path(subject.ref_dir)
+        train = project.path(subject.train_dir)
+        if not ref.is_dir() or not train.is_dir():
+            print(f"{subject.id:<16} SKIP   missing folder ({ref} / {train})")
+            skipped += 1
+            continue
+
+        result = overlap(ref, train)
+        checked += 1
+        status = "ok" if result["clean"] else "LEAK"
+        print(
+            f"{subject.id:<16} {status:<5} refs={result['ref_images']:<3}"
+            f" train={result['train_images']:<4} duplicates={len(result['duplicates'])}"
+        )
+        if not result["clean"]:
+            leaks += 1
+            for item in result["duplicates"][:10]:
+                print(f"    {item['ref']}  ==  {item['train']}")
+            if len(result["duplicates"]) > 10:
+                print(f"    ... {len(result['duplicates']) - 10} more")
+
+    print(f"\n{checked} subjects checked · {leaks} with leaks · {skipped} skipped")
+    return 0 if leaks == 0 else 1
 
 
 def _plan(project: ProjectConfig, seconds_per_image: float) -> int:
@@ -272,11 +331,31 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
         return 2
 
     scorers = [HealthScorer(target_megapixels=args.target_megapixels)]
+    attributes = {s.id: s.attributes for s in project.scenarios.values()}
 
+    if args.verdicts and args.vlm_url:
+        print("use either --verdicts or --vlm-url, not both", file=sys.stderr)
+        return 2
+
+    vlm_judge = None
     if args.verdicts:
         judge = JsonVerdicts(Path(args.verdicts))
-        attributes = {s.id: s.attributes for s in project.scenarios.values()}
         scorers.append(AdherenceScorer(judge, attributes))
+    elif args.vlm_url:
+        if not args.vlm_model:
+            print("--vlm-url needs --vlm-model", file=sys.stderr)
+            return 2
+        from .scorers.vlm import VLMJudge, VLMSettings
+
+        vlm_judge = VLMJudge(
+            VLMSettings(
+                base_url=args.vlm_url,
+                model=args.vlm_model,
+                api_key=args.vlm_api_key,
+                max_side=args.max_side,
+            )
+        )
+        scorers.append(AdherenceScorer(vlm_judge, attributes))
 
     if args.identity:
         from .scorers.identity import (
@@ -334,8 +413,17 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
             scorers,
             run_id=run_id,
             limit=args.limit,
+            skip_existing=args.only_missing,
             on_progress=progress,
         )
+
+    if vlm_judge is not None:
+        stats = vlm_judge.stats
+        print(
+            f"vlm        {stats['parsed']}/{stats['requests']} parsed · "
+            f"{stats['refused']} refused · {stats['errors']} errors"
+        )
+        vlm_judge.close()
 
     print(" · ".join(f"{axis} {value}" for axis, value in sorted(counts.items())))
     return 0
@@ -385,12 +473,16 @@ def _report(project: ProjectConfig, args: argparse.Namespace) -> int:
     return 0
 
 
-def _audit(path: Path) -> int:
+def _audit(path: Path, against: Path | None = None) -> int:
     try:
         result = audit_dataset(path)
     except (NotADirectoryError, FileNotFoundError) as exc:
         print(f"audit error: {exc}", file=sys.stderr)
         return 2
+    if against is not None:
+        from .heldout import overlap
+
+        result["overlap"] = overlap(path, against)
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 

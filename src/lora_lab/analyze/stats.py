@@ -254,9 +254,10 @@ def analyse_all(
     bootstrap: int = 2000,
     seed: int = 7,
 ) -> list[LoraResult]:
-    grouped: dict[str, list[Sample]] = {}
+    grouped: dict[tuple[str, int, float], list[Sample]] = {}
     for sample in samples:
-        grouped.setdefault(sample.lora_id, []).append(sample)
+        key = (sample.lora_id, sample.epoch, sample.strength)
+        grouped.setdefault(key, []).append(sample)
 
     results = []
     for index, key in enumerate(sorted(grouped)):

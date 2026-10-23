@@ -152,6 +152,7 @@ class SubjectReferences:
 class IdentityScorer:
     name = "identity"
     version = "v1"
+    axes = ("identity",)
 
     def __init__(
         self,

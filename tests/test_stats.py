@@ -96,6 +96,16 @@ def test_pass_and_fail_thresholds() -> None:
     assert is_pass(good)
 
 
+def test_strengths_are_separate_operating_points() -> None:
+    samples = [
+        sample("a", 1, 0.9, lora_id="lora", strength=0.8),
+        sample("a", 1, 0.5, lora_id="lora", strength=1.0),
+    ]
+    results = analyse_all(samples, bootstrap=100)
+    assert len(results) == 2
+    assert {r.strength for r in results} == {0.8, 1.0}
+
+
 def test_analyse_all_orders_by_lcb() -> None:
     strong = [sample("a", seed, 0.9, lora_id="strong") for seed in range(4)]
     weak = [sample("a", seed, 0.3, lora_id="weak") for seed in range(4)]

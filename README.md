@@ -92,7 +92,10 @@ lora-lab plan                   expand the grid, estimate duration
 lora-lab generate [--limit N]   render (idempotent, resumable)
 lora-lab status                 progress from SQLite
 lora-lab score [--identity]     run scorers over stored images
+lora-lab score --vlm-url URL --vlm-model NAME
+                                attribute verdicts from a local VLM
 lora-lab report [--json]        rank LoRAs from stored scores
+lora-lab check-refs             verify references are held out from training
 lora-lab audit PATH             dataset audit (resolutions, captions, duplicates)
 lora-lab import-fizgig FILE     training parameters from a .safetensors header
 lora-lab serve                  web dashboard
@@ -110,8 +113,10 @@ Each image gets separate axes, never one blended grade:
 
 The calibration is fitted on genuine and impostor pairs from your own reference
 sets, so a raw cosine of 0.45 means the same thing in every run. Attribute
-verdicts can come from a model or from a JSON file (`--verdicts`) for offline
-or human review rounds.
+verdicts come from a local VLM over an OpenAI-compatible endpoint (vLLM,
+llama.cpp, Ollama, LM Studio) or from a JSON file (`--verdicts`) for offline or
+human review rounds. Refusals and malformed answers are counted per run, not
+raised.
 
 Ranking renormalises over the axes that exist, averages per scenario first (so a
 heavily sampled scenario cannot dominate), and ranks by a two-level cluster
@@ -139,7 +144,8 @@ docker compose up -d --build
 
 `COMFYUI_URL` points at the existing ComfyUI container. When its output folder
 is mounted (`COMFY_OUTPUT_DIR`), images are read from disk instead of over HTTP.
-See `docker/compose.yaml`.
+The mount contract and the container paths for subjects, references and
+datasets are in [docs/PATHS.md](docs/PATHS.md).
 
 ## Architecture
 
@@ -160,10 +166,10 @@ src/lora_lab/
 
 ## Roadmap
 
-1. **Model-backed judge** — a local VLM for attribute verdicts and semantic
-   defects, validated against a human-labelled gold set.
-2. **Report UI** — strength/epoch curves, scenario heatmap, defect profile,
-   Pareto front and weight sensitivity in the dashboard.
+1. **Judge calibration** — validate the VLM against a human-labelled gold set
+   and gate the automated ranking on agreement.
+2. **Defect judge** — semantic defects (extra limbs, text, ignored clothing)
+   from the same VLM, severity weighted.
 3. **Acceptance** — blind A/B tournament with Bradley-Terry.
 4. **Loop** — trigger a new training run, reuse the identical grid, compare
    paired.

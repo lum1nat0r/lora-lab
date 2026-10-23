@@ -17,6 +17,7 @@ def score_run(
     *,
     run_id: int | None = None,
     limit: int | None = None,
+    skip_existing: bool = False,
     on_progress: Callable[[str], None] | None = None,
 ) -> dict[str, int]:
     scorer_list = list(scorers)
@@ -38,6 +39,10 @@ def score_run(
             condition=str(row["condition"]),
         )
         for scorer in scorer_list:
+            if skip_existing and store.has_axes(
+                image.id, scorer.name, scorer.version, getattr(scorer, "axes", ())
+            ):
+                continue
             for score in scorer.score(image):
                 store.add_score(
                     image.id,

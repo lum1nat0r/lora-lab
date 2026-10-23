@@ -1,10 +1,10 @@
 # Unraid / Docker Compose
 #
-# lora-lab only orchestrates: ComfyUI does the rendering on the GPU. Point
-# COMFYUI_URL at the existing ComfyUI container (or its LAN address).
+# lora-lab orchestrates only: ComfyUI renders on the GPU. Point COMFYUI_URL at
+# the existing ComfyUI container (same Docker network) or its LAN address.
 #
-# Mounting ComfyUI's output directory is optional but recommended: the runner
-# then reads images straight from disk instead of downloading them over HTTP.
+# The container paths below are a contract: keep them stable and put the real
+# host paths on the left. See docs/PATHS.md.
 
 services:
   lora-lab:
@@ -17,14 +17,28 @@ services:
     ports:
       - "8099:8099"
     environment:
-      COMFYUI_URL: ${COMFYUI_URL:-http://192.168.1.10:8188}
+      COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
       COMFY_OUTPUT_DIR: /comfy-output
       LORA_LAB_DATA_DIR: /app/data
+      # optional: local VLM judge (vLLM / llama.cpp / Ollama, OpenAI dialect)
+      VLM_JUDGE_URL: ${VLM_JUDGE_URL:-}
+      VLM_JUDGE_MODEL: ${VLM_JUDGE_MODEL:-}
       TZ: Europe/Vienna
     volumes:
+      # required
       - /mnt/user/appdata/lora-lab/config:/app/config
       - /mnt/user/appdata/lora-lab/data:/app/data
-      # optional, read-only: ComfyUI's output folder
-      - /mnt/user/appdata/comfyui/output:/comfy-output:ro
-      # optional, read-only: datasets for audits and leakage checks
       - /mnt/user/Datasets:/datasets:ro
+      # recommended: read rendered images from disk instead of over HTTP
+      - /mnt/user/appdata/comfyui/output:/comfy-output:ro
+      # optional
+      - /mnt/user/appdata/comfyui/models:/models:ro
+      - /mnt/user/appdata/fizgig/user_data:/fizgig:ro
+
+# If lora-lab and ComfyUI are not on the same user-defined network, attach
+# lora-lab to ComfyUI's network instead of using host addresses:
+#
+# networks:
+#   default:
+#     name: <comfyui-network-name>
+#     external: true

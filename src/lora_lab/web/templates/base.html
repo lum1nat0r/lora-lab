@@ -36,6 +36,10 @@
     .muted { color: var(--muted); }
     code { background: #11141a; padding: 1px 5px; border-radius: 4px; }
     .ok { color: var(--good); } .fail { color: var(--bad); }
+    .num { font-variant-numeric: tabular-nums; }
+    .matrix td { text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; }
+    .matrix td.dim { color: var(--muted); }
+    .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -43,7 +47,8 @@
   <h1>lora-lab</h1>
   <nav>
     <a href="/">Dashboard</a>
-    <a href="/api/summary">API</a>
+    <a href="/report">Report</a>
+    <a href="/api/report">API</a>
   </nav>
   <span class="muted">{{ project.grid.name }} · {{ project.grid.profile }}</span>
 </header>
