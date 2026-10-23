@@ -201,14 +201,11 @@ def _merge_loras(
         if not source.is_absolute():
             source = root / source
     elif use_local:
-        inline_valid = bool(grid.loras) and (
-            valid_subjects is None
-            or all(lora.subject in valid_subjects for lora in grid.loras)
-        )
-        if not inline_valid:
-            candidate = cfg_dir / "local" / "loras.yaml"
-            if candidate.exists():
-                source = candidate
+        # A curated list written by the UI or `discover --apply` is the source
+        # of truth; inline grid entries are the fallback for hand-written grids.
+        candidate = cfg_dir / "local" / "loras.yaml"
+        if candidate.exists():
+            source = candidate
 
     if source is None or not source.exists():
         return grid

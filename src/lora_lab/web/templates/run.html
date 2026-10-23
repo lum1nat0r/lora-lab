@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Run{% endblock %}
+{% block content %}
+<h2>Lauf</h2>
+
+{% if plan.error %}
+<div class="flash err">{{ plan.error }}</div>
+{% endif %}
+
+<div class="cards">
+  <div class="card"><div class="k">Bilder</div><div class="v">{{ plan.total }}</div>
+    <div class="hint">≈ {{ plan.minutes }} min bei 15 s/Bild</div></div>
+  <div class="card"><div class="k">LoRAs</div><div class="v">{{ loras }}</div>
+    <a href="/loras">ändern →</a></div>
+  <div class="card"><div class="k">Szenarien</div><div class="v">{{ scenarios }}</div>
+    <a href="/setup/grid">ändern →</a></div>
+  <div class="card"><div class="k">Referenzen</div>
+    <div class="v">{{ refs_ok }}/{{ refs_total }}</div>
+    <a href="/setup">pflegen →</a></div>
+</div>
+
+{% if not loras %}<div class="flash err">Keine LoRAs gewählt — <a href="/loras">jetzt auswählen</a>.</div>{% endif %}
+{% if not vlm %}<div class="flash">Kein VLM konfiguriert: Adhärenz wird nicht bewertet. Setze
+  <code>VLM_JUDGE_URL</code> und <code>VLM_JUDGE_MODEL</code> im Container.</div>{% endif %}
+{% if refs_ok < 2 %}<div class="flash">Für Identität braucht es Referenzen
+  von mindestens zwei Subjekten.</div>{% endif %}
+
+<h2>Starten</h2>
+<div class="actions">
+  <form method="post" action="/run/generate" style="display:flex;gap:8px;align-items:center">
+    <input name="limit" value="{{ default_limit }}" style="width:90px" title="0 = alles">
+    <button class="primary" type="submit" data-run-button>Generieren</button>
+  </form>
+  <form method="post" action="/run/score">
+    <button type="submit" data-run-button>Scoren</button>
+  </form>
+  <form method="post" action="/run/stop">
+    <button class="danger" type="submit" id="run-stop" disabled>Stoppen</button>
+  </form>
+  <a class="button" href="/report">Zum Report →</a>
+</div>
+<p class="hint">Der Limit-Wert begrenzt nur diesen Start (Smoke-Test). Leer lassen oder 0
+  rendert das ganze Grid.</p>
+
+<div id="run-live">
+  <h2>Status</h2>
+  <div class="progress"><div id="run-bar"></div></div>
+  <p class="muted" id="run-label">
+    {% if snapshot.running %}{{ snapshot.kind }} läuft…{% else %}idle{% endif %}
+  </p>
+  <pre class="log" id="run-log">{% for line in snapshot.log %}{{ line }}
+{% endfor %}</pre>
+</div>
+{% endblock %}

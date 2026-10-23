@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Neues Subjekt' if is_new else subject.id }}{% endblock %}
+{% block content %}
+<h2>{{ 'Neues Subjekt' if is_new else 'Subjekt bearbeiten' }}</h2>
+
+<form method="post" action="/setup/subjects/save">
+  <input type="hidden" name="is_new" value="{{ 'true' if is_new else 'false' }}">
+
+  <div class="row">
+    <div>
+      <label>ID</label>
+      <input name="id" value="{{ subject.id }}" {% if not is_new %}readonly{% endif %}
+             placeholder="alinamarzi" required>
+      <div class="hint">Die Person, nicht der Trainingslauf.</div>
+    </div>
+    <div>
+      <label>Trigger-Wort</label>
+      <input name="trigger" value="{{ subject.trigger }}" placeholder="alinamarzi" required>
+    </div>
+  </div>
+
+  <label>Trainingsordner</label>
+  <div class="row">
+    <input name="train_dir" id="train_dir" value="{{ subject.train_dir or '' }}"
+           placeholder="/datasets/alinamarzi_original-mix">
+    <button type="button" class="button" onclick="openBrowser('train_dir')">Durchsuchen…</button>
+  </div>
+
+  <label>Referenzordner (held-out)</label>
+  <div class="row">
+    <input name="ref_dir" id="ref_dir" value="{{ subject.ref_dir or '' }}"
+           placeholder="/datasets/_refs/{{ subject.id or 'subject' }}">
+    <button type="button" class="button" onclick="openBrowser('ref_dir')">Durchsuchen…</button>
+  </div>
+  <div class="hint">
+    Leer lassen legt <code>/datasets/_refs/&lt;id&gt;</code> an. Die Bilder dort müssen
+    <strong>nicht</strong> im Trainingsset sein — <code>check-refs</code> prüft das.
+  </div>
+
+  <div class="actions">
+    <button class="primary" type="submit">Speichern</button>
+    <a class="button" href="/setup">Zurück</a>
+    {% if not is_new %}<a class="button" href="/setup/subjects/{{ subject.id }}/refs">Referenzen verwalten</a>{% endif %}
+  </div>
+</form>
+
+{% if not is_new %}
+<form method="post" action="/setup/subjects/{{ subject.id }}/delete"
+      onsubmit="return confirm('Subjekt {{ subject.id }} wirklich löschen?')">
+  <div class="actions"><button class="danger" type="submit">Subjekt löschen</button></div>
+</form>
+{% endif %}
+
+<div class="modal" id="browser">
+  <div class="box">
+    <div class="head">
+      <strong>Ordner wählen</strong>
+      <button type="button" onclick="closeBrowser()">×</button>
+    </div>
+    <div class="body">
+      <div class="hint" id="browser-path"></div>
+      <div id="browser-list"></div>
+    </div>
+    <div class="foot">
+      <button type="button" onclick="closeBrowser()">Abbrechen</button>
+      <button type="button" class="primary" id="browser-use" onclick="useBrowserPath()">Diesen Ordner verwenden</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

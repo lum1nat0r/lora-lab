@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Referenzen · {{ subject.id }}{% endblock %}
+{% block content %}
+<h2>Referenzen · {{ subject.id }}</h2>
+<p class="muted">
+  Ordner: <code>{{ directory }}</code> ·
+  {{ images | length }} Bild(er)
+  {% if not exists %}<span class="err">(Ordner existiert noch nicht)</span>{% endif %}
+</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="k">Empfehlung</div>
+    <div class="v" style="font-size:15px">15–30 Bilder</div>
+    <div class="hint">verschiedene Winkel, Lichtsituationen, Brennweiten. Nicht aus dem Trainingsset.</div>
+  </div>
+  <div class="card">
+    <div class="k">Aktuell</div>
+    <div class="v">{{ images | length }}</div>
+    <div class="hint">Für die Kalibrierung mindestens zwei Subjekte mit Referenzen.</div>
+  </div>
+</div>
+
+<h2>Hochladen</h2>
+<form method="post" action="/setup/subjects/{{ subject.id }}/refs/upload" enctype="multipart/form-data">
+  <input type="file" name="files" accept="image/*" multiple required>
+  <div class="actions"><button class="primary" type="submit">Hochladen</button></div>
+</form>
+
+<h2>Vorhandene Bilder</h2>
+{% if images %}
+<div class="grid">
+  {% for image in images %}
+  <div class="shot ref">
+    <img src="/refs/{{ subject.id }}/{{ image.name }}" alt="{{ image.name }}" loading="lazy">
+    <div class="meta">{{ image.name }}<br>{{ (image.size / 1024) | round | int }} KB</div>
+    <form method="post" action="/setup/subjects/{{ subject.id }}/refs/delete"
+          onsubmit="return confirm('{{ image.name }} löschen?')">
+      <input type="hidden" name="filename" value="{{ image.name }}">
+      <button class="danger" type="submit">×</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">Noch keine Referenzbilder. Lade welche hoch oder setze den Ordner im Subjekt-Formular.</p>
+{% endif %}
+
+<div class="actions">
+  <a class="button" href="/setup/subjects/{{ subject.id }}/edit">Subjekt bearbeiten</a>
+  <a class="button" href="/setup">Zurück</a>
+</div>
+{% endblock %}

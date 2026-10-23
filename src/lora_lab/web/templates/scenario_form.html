@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Neues Szenario' if is_new else scenario.id }}{% endblock %}
+{% block content %}
+<h2>{{ 'Neues Szenario' if is_new else 'Szenario bearbeiten' }}</h2>
+
+<form method="post" action="/setup/scenarios/save">
+  <input type="hidden" name="is_new" value="{{ 'true' if is_new else 'false' }}">
+
+  <div class="row3">
+    <div>
+      <label>ID</label>
+      <input name="id" value="{{ scenario.id }}" {% if not is_new %}readonly{% endif %}
+             placeholder="face_macro" required>
+      <div class="hint">Kurz, ohne Leerzeichen. Wird in Dateinamen verwendet.</div>
+    </div>
+    <div>
+      <label>Kategorie</label>
+      <select name="category">
+        {% for value in ['core', 'optional', 'explicit'] %}
+        <option value="{{ value }}" {% if scenario.category == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Auflösung (optional)</label>
+      <div class="row">
+        <input name="width" value="{{ scenario.width or '' }}" placeholder="1024">
+        <input name="height" value="{{ scenario.height or '' }}" placeholder="1024">
+      </div>
+    </div>
+  </div>
+
+  <label>Prompt</label>
+  <textarea name="prompt" required>{{ scenario.prompt }}</textarea>
+  <div class="hint">
+    Muss <code>{trigger}</code> enthalten. Beschreibe nur, was gemessen werden soll —
+    keine Identität (Haare, Gesicht), sonst konkurriert der Prompt mit dem LoRA.
+  </div>
+
+  <h3>Attribute</h3>
+  <p class="hint">Jedes Attribut ist eine Ja/Nein-Frage an den Judge. Nur diese werden
+    bewertet, nicht der ganze Prompt. Gewicht optional (Default 1).</p>
+
+  <div id="attr-rows">
+    {% for attribute in scenario.attributes %}
+    <div class="attr-row">
+      <input name="attr_id" value="{{ attribute.id }}" placeholder="id">
+      <input name="attr_question" value="{{ attribute.question }}" placeholder="Ist ... sichtbar?">
+      <input name="attr_weight" value="{{ attribute.weight }}" placeholder="1">
+      <button type="button" class="danger" onclick="this.parentNode.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" onclick="addAttrRow()">+ Attribut</button>
+
+  <div class="actions">
+    <button class="primary" type="submit">Speichern</button>
+    <a class="button" href="/setup">Zurück</a>
+  </div>
+</form>
+
+{% if not is_new %}
+<form method="post" action="/setup/scenarios/{{ scenario.id }}/delete"
+      onsubmit="return confirm('Szenario {{ scenario.id }} wirklich löschen?')">
+  <div class="actions"><button class="danger" type="submit">Szenario löschen</button></div>
+</form>
+{% endif %}
+{% endblock %}

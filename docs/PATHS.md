@@ -47,6 +47,17 @@ comfy_output_dir: /comfy-output
 Die LoRA-Dateien in `grid.yaml` bleiben **ComfyUI-relative Namen**
 (`moss/...`), keine Container-Pfade — ComfyUI lädt sie, nicht lora-lab.
 
+## Referenzordner im UI
+
+Im UI unter **Setup → Subjekt → Referenzen**:
+
+- Bilder per Browser hochladen (mehrere auf einmal)
+- oder den Ordner über den eingebauten Ordner-Browser wählen
+- Löschen einzelner Bilder per Klick
+
+Der Default ist `/datasets/_refs/<subjekt-id>`; der Ordner wird beim ersten
+Upload angelegt und im Subjekt gespeichert.
+
 ## Referenzordner
 
 Der Identitäts-Score ist nur aussagekräftig, wenn die Referenzen nicht im

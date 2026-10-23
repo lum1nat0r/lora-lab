@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+{% block content %}
+
+<div class="cards">
+  <div class="card"><div class="k">Szenarien</div><div class="v">{{ scenarios | length }}</div>
+    <a href="/setup/scenarios/new">Neu anlegen →</a></div>
+  <div class="card"><div class="k">Subjekte</div><div class="v">{{ subjects | length }}</div>
+    <a href="/setup/subjects/new">Neu anlegen →</a></div>
+  <div class="card"><div class="k">LoRAs gewählt</div><div class="v">{{ loras | length }}</div>
+    <a href="/loras">Auswählen →</a></div>
+  <div class="card"><div class="k">Jobs im Grid</div><div class="v">{{ jobs }}</div>
+    <a href="/setup/grid">Grid einstellen →</a></div>
+</div>
+
+<h2>Szenarien</h2>
+<table>
+  <tr><th>ID</th><th>Kategorie</th><th>Attribute</th><th>Prompt</th><th></th></tr>
+  {% for scenario in scenarios %}
+  <tr>
+    <td><code>{{ scenario.id }}</code></td>
+    <td><span class="pill">{{ scenario.category }}</span></td>
+    <td class="num">{{ scenario.attributes | length }}</td>
+    <td class="muted">{{ scenario.prompt[:110] }}{% if scenario.prompt | length > 110 %}…{% endif %}</td>
+    <td style="white-space:nowrap">
+      <a href="/setup/scenarios/{{ scenario.id }}/edit">bearbeiten</a>
+      <form method="post" action="/setup/scenarios/{{ scenario.id }}/delete"
+            style="display:inline" onsubmit="return confirm('Szenario {{ scenario.id }} löschen?')">
+        <button class="danger" type="submit">löschen</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Noch keine Szenarien.</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Szenarien importieren</h2>
+<form method="post" action="/setup/scenarios/import" enctype="multipart/form-data">
+  <div class="row">
+    <input type="file" name="file" accept=".yaml,.yml,.json" required>
+    <button class="button" type="submit">Importieren</button>
+  </div>
+  <div class="hint">YAML oder JSON mit <code>scenarios:</code> — bestehende IDs werden überschrieben.</div>
+</form>
+
+<h2>Subjekte</h2>
+<table>
+  <tr><th>ID</th><th>Trigger</th><th>Referenzen</th><th>Trainingsordner</th><th></th></tr>
+  {% for subject in subjects %}
+  <tr>
+    <td><code>{{ subject.id }}</code></td>
+    <td>{{ subject.trigger }}</td>
+    <td class="num">{{ ref_counts.get(subject.id, 0) }}</td>
+    <td class="muted">{{ subject.train_dir or '–' }}</td>
+    <td style="white-space:nowrap">
+      <a href="/setup/subjects/{{ subject.id }}/edit">bearbeiten</a> ·
+      <a href="/setup/subjects/{{ subject.id }}/refs">Referenzen</a>
+      <form method="post" action="/setup/subjects/{{ subject.id }}/delete"
+            style="display:inline" onsubmit="return confirm('Subjekt {{ subject.id }} löschen?')">
+        <button class="danger" type="submit">löschen</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Noch keine Subjekte.</td></tr>
+  {% endfor %}
+</table>
+<form method="post" action="/setup/subjects/cleanup"
+      onsubmit="return confirm('Alle Subjekte löschen, denen kein LoRA zugeordnet ist?')">
+  <div class="actions"><button class="button" type="submit">Unbenutzte Subjekte entfernen</button></div>
+</form>
+
+<h2>Grid</h2>
+<p class="muted">Strengths, Seeds und Szenarien stehen unter
+<a href="/setup/grid">Grid-Einstellungen</a>. Die LoRA-Auswahl unter
+<a href="/loras">LoRAs</a>.</p>
+
+{% endblock %}

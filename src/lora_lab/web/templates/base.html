@@ -4,54 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>lora-lab · {% block title %}{% endblock %}</title>
-  <style>
-    :root {
-      --bg: #0f1115; --panel: #171a21; --line: #262b36;
-      --text: #e6e8ee; --muted: #8b93a7; --accent: #7aa2f7; --good: #73d13d; --bad: #ff7875;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text);
-           font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-    header { padding: 18px 28px; border-bottom: 1px solid var(--line);
-             display: flex; gap: 24px; align-items: baseline; }
-    header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
-    header nav a { color: var(--muted); text-decoration: none; margin-right: 16px; }
-    header nav a:hover { color: var(--text); }
-    main { padding: 24px 28px 60px; max-width: 1200px; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-    .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
-    .card .v { font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 4px; }
-    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px;
-         color: var(--muted); margin: 32px 0 12px; }
-    table { width: 100%; border-collapse: collapse; background: var(--panel);
-            border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
-    tr:last-child td { border-bottom: none; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-    .shot { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-    .shot img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
-    .shot .meta { padding: 6px 8px; font-size: 11px; color: var(--muted); line-height: 1.35; }
-    .muted { color: var(--muted); }
-    code { background: #11141a; padding: 1px 5px; border-radius: 4px; }
-    .ok { color: var(--good); } .fail { color: var(--bad); }
-    .num { font-variant-numeric: tabular-nums; }
-    .matrix td { text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; }
-    .matrix td.dim { color: var(--muted); }
-    .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
-  </style>
+  <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <header>
   <h1>lora-lab</h1>
   <nav>
     <a href="/">Dashboard</a>
+    <a href="/setup">Setup</a>
+    <a href="/loras">LoRAs</a>
+    <a href="/run">Run</a>
     <a href="/report">Report</a>
-    <a href="/api/report">API</a>
   </nav>
   <span class="muted">{{ project.grid.name }} · {{ project.grid.profile }}</span>
 </header>
-<main>{% block content %}{% endblock %}</main>
+<main>
+{% if request.query_params.get('ok') %}<div class="flash ok">{{ request.query_params.get('ok') }}</div>{% endif %}
+{% if request.query_params.get('err') %}<div class="flash err">{{ request.query_params.get('err') }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+<script src="/static/app.js"></script>
 </body>
 </html>

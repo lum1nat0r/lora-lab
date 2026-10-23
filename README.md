@@ -46,6 +46,22 @@ $EDITOR config/local/*.yaml
 `doctor` works without a running ComfyUI: widget mapping falls back to a
 built-in table for the MOSS nodes.
 
+## Web UI
+
+Most of the setup no longer needs a terminal. Open `http://<host>:8199/`:
+
+| Page | What it does |
+|---|---|
+| **Setup** | create/edit scenarios (prompt + attribute checklist), create subjects, import a scenario pack, manage reference images |
+| **LoRAs** | scan `models/loras`, pick candidates, assign them to a subject, set epochs |
+| **Run** | see the job count, start generation and scoring, watch the log |
+| **Report** | ranking, scenario matrix, strength/epoch curves |
+
+Reference images are uploaded in the browser into a folder per subject; the
+built-in folder browser picks existing dataset folders instead. Existing
+config files can still be edited by hand — the UI writes the same
+`config/local/*.yaml`.
+
 ## Configuration
 
 | File | Contents |

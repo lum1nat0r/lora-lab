@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}LoRAs{% endblock %}
+{% block content %}
+<h2>LoRAs auswählen</h2>
+<p class="muted">
+  {{ selected_count }} gewählt · {{ items | length }} bekannt ·
+  Grid ergibt aktuell <strong>{{ jobs }}</strong> Bilder
+  (≈ {{ estimate_minutes }} min bei 15 s/Bild).
+</p>
+
+<form method="post" action="/loras/scan">
+  <label>Modellordner scannen</label>
+  <div class="row">
+    <input name="path" value="{{ scan_path }}">
+    <button class="button" type="submit">Scannen</button>
+  </div>
+  <div class="hint">Es werden nur LoRAs übernommen, deren Trigger oder Pfad zu einem Subjekt passt.</div>
+</form>
+
+{% if items %}
+<form method="post" action="/loras/save">
+  <div class="actions">
+    <button type="button" class="button" onclick="toggleAll(true)">Alle</button>
+    <button type="button" class="button" onclick="toggleAll(false)">Keine</button>
+    <button type="button" class="button" onclick="selectLatestPerSubject()">Neueste Epoche je Subjekt</button>
+  </div>
+
+  <table>
+    <tr><th></th><th>ID</th><th>Datei</th><th>Epoche</th><th>Subjekt</th><th>Info</th></tr>
+    {% for item in items %}
+    {% set index = loop.index0 %}
+    <tr data-subject="{{ item.subject }}" data-epoch="{{ item.epoch or 0 }}">
+      <td><input type="checkbox" data-pick name="pick_{{ index }}"
+                 {% if item.selected %}checked{% endif %}></td>
+      <td><code>{{ item.id }}</code></td>
+      <td class="muted">{{ item.file }}</td>
+      <td><input name="epoch_{{ index }}" value="{{ item.epoch or 0 }}" style="width:85px"></td>
+      <td>
+        <select name="subject_{{ index }}">
+          {% for subject in subjects %}
+          <option value="{{ subject }}" {% if item.subject == subject %}selected{% endif %}>{{ subject }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td class="muted">
+        {% if item.rank %}rank {{ item.rank }}{% endif %}
+        {% if item.size_mb %} · {{ item.size_mb }} MB{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="actions">
+    <button class="primary" type="submit">Auswahl speichern</button>
+    <a class="button" href="/run">Weiter zum Lauf →</a>
+  </div>
+</form>
+{% else %}
+<p class="muted">Noch keine LoRAs bekannt. Lege zuerst Subjekte an und scanne dann den Modellordner.</p>
+{% endif %}
+{% endblock %}

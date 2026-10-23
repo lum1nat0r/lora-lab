@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Grid{% endblock %}
+{% block content %}
+<h2>Grid-Einstellungen</h2>
+<p class="muted">Was gerendert wird, bevor die LoRA-Auswahl dazukommt.</p>
+
+<form method="post" action="/setup/grid/save">
+  <div class="row">
+    <div>
+      <label>Name des Laufs</label>
+      <input name="name" value="{{ grid.name }}">
+    </div>
+    <div>
+      <label>Render-Profil</label>
+      <select name="profile">
+        {% for name in profiles %}
+        <option value="{{ name }}" {% if name == grid.profile %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Strengths</label>
+      <input name="strengths" value="{{ grid.strengths | join(', ') }}">
+      <div class="hint">z. B. 0.8, 0.9, 1.0</div>
+    </div>
+    <div>
+      <label>Seeds</label>
+      <input name="seeds" value="{{ grid.seeds | join(', ') }}">
+      <div class="hint">Dieselben Seeds für alle LoRAs.</div>
+    </div>
+  </div>
+
+  <h3>Szenarien</h3>
+  <table>
+    <tr><th></th><th>ID</th><th>Kategorie</th><th>Attribute</th></tr>
+    {% for scenario in scenarios %}
+    <tr>
+      <td><input type="checkbox" name="scenarios" value="{{ scenario.id }}"
+                 {% if scenario.id in selected %}checked{% endif %}></td>
+      <td><code>{{ scenario.id }}</code></td>
+      <td><span class="pill">{{ scenario.category }}</span></td>
+      <td class="num">{{ scenario.attributes | length }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="row">
+    <div>
+      <label>Negativ-Prompt</label>
+      <input name="negative_prompt" value="{{ grid.negative_prompt }}">
+    </div>
+    <div>
+      <label>Auflösung</label>
+      <div class="row">
+        <input name="width" value="{{ grid.width }}">
+        <input name="height" value="{{ grid.height }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" type="submit">Grid speichern</button>
+    <a class="button" href="/setup">Zurück</a>
+  </div>
+</form>
+{% endblock %}
