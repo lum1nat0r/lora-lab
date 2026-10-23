@@ -200,32 +200,136 @@ class IdentityScorer:
         ]
 
 
-class ArcFaceEmbedder:
-    """InsightFace ArcFace embeddings. Imported lazily to keep the core light."""
+ARCFACE_DST = [
+    (38.2946, 51.6963),
+    (73.5318, 51.5014),
+    (56.0252, 71.7366),
+    (41.5493, 92.3655),
+    (70.7299, 92.2041),
+]
 
-    def __init__(self, model_name: str = "buffalo_l", det_size: int = 640) -> None:
+DEFAULT_ARCFACE = "/opt/face/w600k_r50.onnx"
+DEFAULT_YUNET = "/opt/face/yunet.onnx"
+
+
+def l2_normalize(vector) -> list[float] | None:
+    values = [float(x) for x in vector]
+    norm = math.sqrt(math.fsum(x * x for x in values))
+    if norm == 0:
+        return None
+    return [x / norm for x in values]
+
+
+def align_face(image, landmarks, size: int = 112):
+    """Align a face to the ArcFace template using YuNet's five points."""
+
+    import cv2
+    import numpy as np
+
+    source = np.asarray(landmarks, dtype=np.float32).reshape(5, 2)
+    target = np.asarray(ARCFACE_DST, dtype=np.float32)
+    matrix, _ = cv2.estimateAffinePartial2D(source, target, method=cv2.LMEDS)
+    if matrix is None:
+        matrix, _ = cv2.estimateAffine2D(source, target, method=cv2.RANSAC)
+    if matrix is None:
+        return None
+    return cv2.warpAffine(image, matrix, (size, size), borderValue=0.0)
+
+
+def preprocess(aligned):
+    import cv2
+
+    return cv2.dnn.blobFromImage(
+        aligned, 1.0 / 127.5, (112, 112), (127.5, 127.5, 127.5), swapRB=True
+    )
+
+
+@dataclass
+class Face:
+    box: tuple[float, float, float, float]
+    landmarks: list[tuple[float, float]]
+    score: float
+
+    @property
+    def area(self) -> float:
+        return max(self.box[2], 0.0) * max(self.box[3], 0.0)
+
+
+class ArcFaceEmbedder:
+    """YuNet face detection plus an ArcFace ONNX embedding model.
+
+    Deliberately no InsightFace dependency: that package is source-only and
+    makes the container build fragile. Detection and recognition are two ONNX
+    models loaded directly with onnxruntime.
+    """
+
+    def __init__(
+        self,
+        model_path: str | None = None,
+        detector_path: str | None = None,
+    ) -> None:
         try:
-            import cv2  # noqa: F401
-            from insightface.app import FaceAnalysis
-        except ImportError as exc:  # pragma: no cover - optional dependency
+            import cv2
+            import onnxruntime
+        except ImportError as exc:  # pragma: no cover - optional extras
             raise RuntimeError(
-                "identity scoring needs the optional extras: pip install 'lora-lab[score]'"
+                "identity scoring needs the score extras: pip install 'lora-lab[score]'"
             ) from exc
 
-        self._app = FaceAnalysis(name=model_name, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
-        self._app.prepare(ctx_id=0, det_size=(det_size, det_size))
+        import os
+        from pathlib import Path
 
-    def embed(self, path: str) -> list[float] | None:  # pragma: no cover - needs models
-        import cv2
+        arcface = Path(model_path or os.environ.get("ARCFACE_MODEL", DEFAULT_ARCFACE))
+        yunet = Path(detector_path or os.environ.get("YUNET_MODEL", DEFAULT_YUNET))
+        for path, label in ((arcface, "ArcFace"), (yunet, "YuNet")):
+            if not path.is_file():
+                raise RuntimeError(f"{label} model not found: {path}")
 
-        image = cv2.imread(path)
+        self._cv2 = cv2
+        self._session = onnxruntime.InferenceSession(
+            str(arcface), providers=["CPUExecutionProvider"]
+        )
+        self._input = self._session.get_inputs()[0].name
+        self._output = self._session.get_outputs()[0].name
+        self._detector = cv2.FaceDetectorYN.create(str(yunet), "", (640, 640), 0.6, 0.3, 5000)
+
+    def _read(self, path: str):
+        image = self._cv2.imread(path)
         if image is None:
+            return None, []
+        height, width = image.shape[:2]
+        self._detector.setInputSize((width, height))
+        _, faces = self._detector.detect(image)
+        if faces is None:
+            return image, []
+        parsed = []
+        for row in faces:
+            parsed.append(
+                Face(
+                    box=(float(row[0]), float(row[1]), float(row[2]), float(row[3])),
+                    landmarks=[
+                        (float(row[4 + i * 2]), float(row[5 + i * 2])) for i in range(5)
+                    ],
+                    score=float(row[14]),
+                )
+            )
+        return image, parsed
+
+    def detect(self, path: str) -> list[Face]:
+        _image, faces = self._read(path)
+        return faces
+
+    def embed(self, path: str) -> list[float] | None:
+        image, faces = self._read(path)
+        if image is None or not faces:
             return None
-        faces = self._app.get(image)
-        if not faces:
+        face = max(faces, key=lambda item: item.area)
+        aligned = align_face(image, face.landmarks)
+        if aligned is None:
             return None
-        face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
-        return [float(x) for x in face.normed_embedding]
+        blob = preprocess(aligned)
+        output = self._session.run([self._output], {self._input: blob})[0][0]
+        return l2_normalize(output)
 
 
 def build_references(

@@ -22,6 +22,8 @@
 {% if not loras %}<div class="flash err">Keine LoRAs gewählt — <a href="/loras">jetzt auswählen</a>.</div>{% endif %}
 {% if not vlm %}<div class="flash">Kein VLM konfiguriert: Adhärenz wird nicht bewertet. Setze
   <code>VLM_JUDGE_URL</code> und <code>VLM_JUDGE_MODEL</code> im Container.</div>{% endif %}
+{% if not identity %}<div class="flash">Identitäts-Scoring ist nicht verfügbar: die ONNX-Modelle
+  fehlen im Container. Face-Count und Qualität laufen trotzdem.</div>{% endif %}
 {% if refs_ok < 2 %}<div class="flash">Für Identität braucht es Referenzen
   von mindestens zwei Subjekten.</div>{% endif %}
 

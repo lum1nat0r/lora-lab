@@ -472,12 +472,22 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
         scorers.append(AdherenceScorer(vlm_judge, attributes))
 
     if args.identity:
+        from .scorers.defects import FaceCountScorer
         from .scorers.identity import (
             ArcFaceEmbedder,
             IdentityScorer,
             build_references,
             calibrate_from_references,
         )
+
+        try:
+            embedder = ArcFaceEmbedder()
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        # objective multi-face detection comes for free with the detector
+        scorers.append(FaceCountScorer(embedder))
 
         directories = {
             subject.id: project.path(subject.ref_dir)
@@ -486,27 +496,22 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
         }
         if len(directories) < 2:
             print(
-                "identity scoring needs reference folders for at least two subjects"
-                " (one to match, one to calibrate against)",
+                "identity calibration needs reference folders for at least two subjects;"
+                " face counting still runs",
                 file=sys.stderr,
             )
-            return 2
-        try:
-            embedder = ArcFaceEmbedder()
-        except RuntimeError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-        references = build_references(directories, embedder)
-        try:
-            calibration = calibrate_from_references(references)
-        except ValueError as exc:
-            print(f"calibration failed: {exc}", file=sys.stderr)
-            return 2
-        print(
-            f"calibration  slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
-            f" genuine={calibration.genuine} impostor={calibration.impostor}"
-        )
-        scorers.append(IdentityScorer(references, calibration, embedder))
+        else:
+            references = build_references(directories, embedder)
+            try:
+                calibration = calibrate_from_references(references)
+            except ValueError as exc:
+                print(f"calibration failed: {exc}", file=sys.stderr)
+                return 2
+            print(
+                f"calibration  slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
+                f" genuine={calibration.genuine} impostor={calibration.impostor}"
+            )
+            scorers.append(IdentityScorer(references, calibration, embedder))
 
     with Store(project.db_path) as store:
         run_id = None

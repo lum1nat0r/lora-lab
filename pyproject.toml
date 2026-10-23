@@ -25,9 +25,8 @@ dependencies = [
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.5"]
 score = [
     "numpy>=1.26",
-    "opencv-python-headless>=4.9",
-    "onnxruntime-gpu>=1.18",
-    "insightface>=0.7.3",
+    "opencv-python-headless>=4.10",
+    "onnxruntime>=1.18",
 ]
 web = []
 

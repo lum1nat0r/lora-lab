@@ -182,3 +182,66 @@ def test_diversity_and_leakage() -> None:
     assert pairwise_diversity([[1, 0], [1, 0]]) == pytest.approx(0.0)
     assert leakage([1, 0], [[1, 0], [0, 1]]) == pytest.approx(1.0)
     assert leakage([1, 0], []) is None
+
+
+def test_l2_normalize() -> None:
+    from lora_lab.scorers.identity import l2_normalize
+
+    vector = l2_normalize([3.0, 4.0])
+    assert vector == pytest.approx([0.6, 0.8])
+    assert l2_normalize([0.0, 0.0]) is None
+
+
+def test_arcface_embedder_reports_missing_models(tmp_path: Path) -> None:
+    from lora_lab.scorers.identity import ArcFaceEmbedder
+
+    pytest.importorskip("numpy")
+    pytest.importorskip("cv2")
+    pytest.importorskip("onnxruntime")
+    with pytest.raises(RuntimeError, match="model not found"):
+        ArcFaceEmbedder(
+            model_path=str(tmp_path / "nope.onnx"),
+            detector_path=str(tmp_path / "nope2.onnx"),
+        )
+
+
+def test_face_count_scorer_marks_multi_face() -> None:
+    from lora_lab.scorers.defects import FaceCountScorer
+
+    class Detector:
+        def __init__(self, count: int) -> None:
+            self.count = count
+
+        def detect(self, path: str):
+            return [object()] * self.count
+
+    one = FaceCountScorer(Detector(1)).score(image_ref("x.png"))[0]
+    assert one.value == 0.0
+    assert one.meta["faces"] == 1
+
+    two = FaceCountScorer(Detector(2)).score(image_ref("x.png"))[0]
+    assert two.value == 1.0
+    assert two.meta["faces"] == 2
+
+
+def test_face_count_scorer_survives_detector_error() -> None:
+    from lora_lab.scorers.defects import FaceCountScorer
+
+    class Broken:
+        def detect(self, path: str):
+            raise OSError("boom")
+
+    score = FaceCountScorer(Broken()).score(image_ref("x.png"))[0]
+    assert score.value is None
+    assert score.meta["reason"].startswith("detect failed")
+
+
+def test_align_face_shape() -> None:
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("cv2")
+    from lora_lab.scorers.identity import ARCFACE_DST, align_face
+
+    image = np.zeros((200, 200, 3), dtype=np.uint8)
+    aligned = align_face(image, ARCFACE_DST)
+    assert aligned is not None
+    assert aligned.shape == (112, 112, 3)

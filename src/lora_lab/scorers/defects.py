@@ -162,3 +162,42 @@ __all__ = [
     "pairwise_diversity",
 ]
 
+
+
+class FaceCountScorer:
+    """Objective multi-face detection, no judge needed.
+
+    More than one detected face is a critical defect for a single-subject
+    scenario; the count is also recorded in the metadata.
+    """
+
+    name = "face_count"
+    version = "v1"
+    axes = ("critical",)
+
+    def __init__(self, detector) -> None:
+        self.detector = detector
+
+    def score(self, image: ImageRef) -> list[Score]:
+        try:
+            faces = self.detector.detect(image.path)
+        except Exception as exc:  # noqa: BLE001 - one unreadable image must not stop a run
+            return [
+                Score(
+                    axis="critical",
+                    value=None,
+                    scorer=self.name,
+                    version=self.version,
+                    meta={"reason": f"detect failed: {exc}"},
+                )
+            ]
+        count = len(faces)
+        return [
+            Score(
+                axis="critical",
+                value=1.0 if count > 1 else 0.0,
+                scorer=self.name,
+                version=self.version,
+                meta={"faces": count},
+            )
+        ]

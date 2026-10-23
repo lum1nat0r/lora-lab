@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import threading
 import time
@@ -162,12 +161,18 @@ class RunManager:
         else:
             self._append("no VLM configured (VLM_JUDGE_URL / VLM_JUDGE_MODEL) — quality only")
 
-        if importlib.util.find_spec("insightface"):
-            identity = self._identity_scorer(project)
+        from ..scorers.defects import FaceCountScorer
+        from ..scorers.identity import ArcFaceEmbedder
+
+        try:
+            embedder = ArcFaceEmbedder()
+        except RuntimeError as exc:
+            self._append(f"identity skipped: {exc}")
+        else:
+            scorers.append(FaceCountScorer(embedder))
+            identity = self._identity_scorer(project, embedder)
             if identity is not None:
                 scorers.append(identity)
-        else:
-            self._append("identity skipped: insightface is not installed in this image")
 
         def on_progress(message: str) -> None:
             self.log.append(message)
@@ -188,9 +193,8 @@ class RunManager:
                 )
                 judge.close()
 
-    def _identity_scorer(self, project):
+    def _identity_scorer(self, project, embedder):
         from ..scorers.identity import (
-            ArcFaceEmbedder,
             IdentityScorer,
             build_references,
             calibrate_from_references,
@@ -207,7 +211,6 @@ class RunManager:
             self._append("identity skipped: need reference folders for at least two subjects")
             return None
         self._append(f"building reference embeddings for {len(directories)} subjects")
-        embedder = ArcFaceEmbedder()
         references = build_references(directories, embedder)
         calibration = calibrate_from_references(references)
         self._append(

@@ -127,12 +127,16 @@ Each image gets separate axes, never one blended grade:
 
 | Axis | Source | Missing data |
 |---|---|---|
-| `identity` | embedding similarity to the subject's reference centroid, calibrated to P(same subject) | `None` when no face/reference, never 0 |
+| `identity` | ArcFace (ONNX) similarity to the subject's reference centroid, calibrated to P(same subject) | `None` when no face/reference, never 0 |
+| `critical` | face count from YuNet: more than one face is a critical defect | `None` if detection failed |
 | `adherence` | weighted share of satisfied attributes from the scenario checklist | `None` when nothing could be judged |
 | `quality` | model-free health (resolution × sharpness); an aesthetic scorer can replace it | `None` if unreadable |
 
-The calibration is fitted on genuine and impostor pairs from your own reference
-sets, so a raw cosine of 0.45 means the same thing in every run. Attribute
+Identity runs entirely on ONNX: YuNet for face detection, ArcFace
+(`w600k_r50`) for the embedding, both baked into the image. No InsightFace
+build, no GPU needed. The calibration is fitted on genuine and impostor pairs
+from your own reference sets, so a raw cosine of 0.45 means the same thing in
+every run. Attribute
 verdicts come from a local VLM over an OpenAI-compatible endpoint (vLLM,
 llama.cpp, Ollama, LM Studio) or from a JSON file (`--verdicts`) for offline or
 human review rounds. Refusals and malformed answers are counted per run, not

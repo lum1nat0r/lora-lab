@@ -69,6 +69,9 @@ def run_page(request: Request) -> HTMLResponse:
             "refs_ok": sum(1 for value in refs.values() if value),
             "refs_total": len(refs),
             "vlm": bool(os.environ.get("VLM_JUDGE_URL") and os.environ.get("VLM_JUDGE_MODEL")),
+            "identity": Path(
+                os.environ.get("ARCFACE_MODEL", "/opt/face/w600k_r50.onnx")
+            ).is_file(),
             "default_limit": 8,
         },
     )
