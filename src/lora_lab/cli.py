@@ -92,11 +92,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
 
-    try:
-        project = load_project(root)
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"config error: {exc}", file=sys.stderr)
-        return 2
+    if args.command == "serve":
+        # A broken config must not turn into a Docker restart loop: the web UI
+        # comes up in a degraded state instead, so the container stays alive
+        # and can be fixed with `docker exec`.
+        try:
+            project = load_project(root)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"config error: {exc} — serving a degraded dashboard", file=sys.stderr)
+            from .web.broken import serve_broken
+
+            serve_broken(root, exc, args.host, args.port)
+            return 0
+    else:
+        try:
+            project = load_project(root)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"config error: {exc}", file=sys.stderr)
+            return 2
 
     if args.command == "doctor":
         return _doctor(project)
