@@ -152,7 +152,7 @@ def subjects_yaml(subjects: list[dict[str, Any]]) -> str:
             "ref_dir": item["ref_dir"],
             "train_dir": item["train_dir"],
         }
-        entries.append(Subject(**entry).model_dump())
+        entries.append(Subject(**entry).model_dump(exclude_none=True))
     return yaml.safe_dump({"subjects": entries}, sort_keys=False, allow_unicode=True)
 
 
