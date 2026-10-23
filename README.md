@@ -7,9 +7,10 @@ intervals instead of a single hand-assigned average.
 The subject can be anything a LoRA is trained for — a person, an object, a
 product, a style. Nothing in the tool assumes characters.
 
-> **Status:** the foundation works (workflow bridge, runner, grid, persistence,
-> dashboard, trainer-metadata import, dataset audit). The scoring and analysis
-> layer is the next stage; see [Roadmap](#roadmap).
+> **Status:** rendering and persistence work; the scoring core (subject
+> calibration, attribute adherence, defect/health metrics) and the ranking
+> statistics are implemented and tested. The model-backed judge and the
+> acceptance UI are the next stage; see [Roadmap](#roadmap).
 
 ## Why
 
@@ -90,10 +91,32 @@ lora-lab doctor                 validate config, workflow bindings, ComfyUI
 lora-lab plan                   expand the grid, estimate duration
 lora-lab generate [--limit N]   render (idempotent, resumable)
 lora-lab status                 progress from SQLite
+lora-lab score [--identity]     run scorers over stored images
+lora-lab report [--json]        rank LoRAs from stored scores
 lora-lab audit PATH             dataset audit (resolutions, captions, duplicates)
 lora-lab import-fizgig FILE     training parameters from a .safetensors header
 lora-lab serve                  web dashboard
 ```
+
+## Scoring
+
+Each image gets separate axes, never one blended grade:
+
+| Axis | Source | Missing data |
+|---|---|---|
+| `identity` | embedding similarity to the subject's reference centroid, calibrated to P(same subject) | `None` when no face/reference, never 0 |
+| `adherence` | weighted share of satisfied attributes from the scenario checklist | `None` when nothing could be judged |
+| `quality` | model-free health (resolution × sharpness); an aesthetic scorer can replace it | `None` if unreadable |
+
+The calibration is fitted on genuine and impostor pairs from your own reference
+sets, so a raw cosine of 0.45 means the same thing in every run. Attribute
+verdicts can come from a model or from a JSON file (`--verdicts`) for offline
+or human review rounds.
+
+Ranking renormalises over the axes that exist, averages per scenario first (so a
+heavily sampled scenario cannot dominate), and ranks by a two-level cluster
+bootstrap lower bound. `report` also prints seed stability and each LoRA's two
+weakest scenarios.
 
 ## Trainer metadata
 
@@ -137,11 +160,11 @@ src/lora_lab/
 
 ## Roadmap
 
-1. **Scorers** — subject embeddings with calibration, attribute judge, defect
-   catalogue, diversity and leakage against the training set.
-2. **Statistics** — scenario-weighted utilities, cluster bootstrap, LCB ranking,
-   strength plateau, Pareto front, weight sensitivity.
-3. **Acceptance** — blind A/B tournament with Bradley-Terry in the dashboard.
+1. **Model-backed judge** — a local VLM for attribute verdicts and semantic
+   defects, validated against a human-labelled gold set.
+2. **Report UI** — strength/epoch curves, scenario heatmap, defect profile,
+   Pareto front and weight sensitivity in the dashboard.
+3. **Acceptance** — blind A/B tournament with Bradley-Terry.
 4. **Loop** — trigger a new training run, reuse the identical grid, compare
    paired.
 

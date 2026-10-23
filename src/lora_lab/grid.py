@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from .config import Subject, GridConfig, Scenario
+from .config import GridConfig, Scenario, Subject
 
 
 @dataclass(frozen=True, order=True)

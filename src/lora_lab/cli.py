@@ -46,6 +46,19 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("status", help="show database progress")
 
+    score = sub.add_parser("score", help="run scorers over stored images")
+    score.add_argument("--run", default=None)
+    score.add_argument("--identity", action="store_true", help="ArcFace subject fidelity")
+    score.add_argument("--verdicts", default=None, help="JSON file with attribute verdicts")
+    score.add_argument("--limit", type=int, default=None)
+    score.add_argument("--target-megapixels", type=float, default=1.0)
+    score.add_argument("--quiet", action="store_true")
+
+    report = sub.add_parser("report", help="rank LoRAs from stored scores")
+    report.add_argument("--run", default=None)
+    report.add_argument("--json", action="store_true")
+    report.add_argument("--bootstrap", type=int, default=2000)
+
     audit = sub.add_parser("audit", help="audit a dataset folder")
     audit.add_argument("path")
 
@@ -74,6 +87,10 @@ def main(argv: list[str] | None = None) -> int:
         return _generate(project, args)
     if args.command == "status":
         return _status(project)
+    if args.command == "score":
+        return _score(project, args)
+    if args.command == "report":
+        return _report(project, args)
     if args.command == "audit":
         return _audit(Path(args.path))
     if args.command == "import-fizgig":
@@ -242,6 +259,129 @@ def _status(project: ProjectConfig) -> int:
         print(f"images     {store.image_count()}")
         for run in store.runs():
             print(f"run        {run['name']}  profile={run['profile']}")
+    return 0
+
+
+def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
+    from .scorers.adherence import AdherenceScorer, JsonVerdicts
+    from .scorers.defects import HealthScorer
+    from .scorers.run import score_run
+
+    if not project.db_path.exists():
+        print("no database yet — run `lora-lab generate` first", file=sys.stderr)
+        return 2
+
+    scorers = [HealthScorer(target_megapixels=args.target_megapixels)]
+
+    if args.verdicts:
+        judge = JsonVerdicts(Path(args.verdicts))
+        attributes = {s.id: s.attributes for s in project.scenarios.values()}
+        scorers.append(AdherenceScorer(judge, attributes))
+
+    if args.identity:
+        from .scorers.identity import (
+            ArcFaceEmbedder,
+            IdentityScorer,
+            build_references,
+            calibrate_from_references,
+        )
+
+        directories = {
+            subject.id: project.path(subject.ref_dir)
+            for subject in project.subjects.values()
+            if subject.ref_dir and project.path(subject.ref_dir).is_dir()
+        }
+        if len(directories) < 2:
+            print(
+                "identity scoring needs reference folders for at least two subjects"
+                " (one to match, one to calibrate against)",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            embedder = ArcFaceEmbedder()
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        references = build_references(directories, embedder)
+        try:
+            calibration = calibrate_from_references(references)
+        except ValueError as exc:
+            print(f"calibration failed: {exc}", file=sys.stderr)
+            return 2
+        print(
+            f"calibration  slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
+            f" genuine={calibration.genuine} impostor={calibration.impostor}"
+        )
+        scorers.append(IdentityScorer(references, calibration, embedder))
+
+    with Store(project.db_path) as store:
+        run_id = None
+        if args.run:
+            run = store.run_by_name(args.run)
+            if run is None:
+                print(f"unknown run: {args.run}", file=sys.stderr)
+                return 2
+            run_id = int(run["id"])
+
+        def progress(message: str) -> None:
+            if not args.quiet:
+                print(message, flush=True)
+
+        counts = score_run(
+            project,
+            store,
+            scorers,
+            run_id=run_id,
+            limit=args.limit,
+            on_progress=progress,
+        )
+
+    print(" · ".join(f"{axis} {value}" for axis, value in sorted(counts.items())))
+    return 0
+
+
+def _report(project: ProjectConfig, args: argparse.Namespace) -> int:
+    from .analyze.report import build_report, format_results, report_json, samples_from_store
+    from .analyze.stats import analyse_all
+
+    if not project.db_path.exists():
+        print("no database yet — run `lora-lab generate` first", file=sys.stderr)
+        return 2
+
+    with Store(project.db_path) as store:
+        run_id = None
+        if args.run:
+            run = store.run_by_name(args.run)
+            if run is None:
+                print(f"unknown run: {args.run}", file=sys.stderr)
+                return 2
+            run_id = int(run["id"])
+
+        if args.json:
+            print(report_json(build_report(store, run_id=run_id, bootstrap=args.bootstrap)))
+            return 0
+
+        samples = samples_from_store(store, run_id)
+        results = analyse_all(samples, bootstrap=args.bootstrap)
+
+    if not results:
+        print("no scored images yet — run `lora-lab score` first", file=sys.stderr)
+        return 2
+
+    print(format_results(results))
+    print()
+    print(
+        f"{len(samples)} scored images · ranking by LCB95 · "
+        "mean/rob/stab are scenario-weighted"
+    )
+    for result in results:
+        worst = sorted(result.per_scenario.items(), key=lambda item: item[1])[:2]
+        if worst:
+            print(
+                f"  {result.lora_id[:28]:<28} weakest: "
+                + ", ".join(f"{name} {value:.2f}" for name, value in worst)
+            )
     return 0
 
 

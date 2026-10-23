@@ -210,6 +210,60 @@ class Store:
         )
         self.conn.commit()
 
+    # -- scores ------------------------------------------------------------
+    def add_score(
+        self,
+        image_id: int,
+        scorer: str,
+        version: str,
+        axis: str,
+        value: float | None,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO scores(image_id, scorer, version, axis, value, meta_json,"
+            " created_at) VALUES (?,?,?,?,?,?,?)",
+            (image_id, scorer, version, axis, value, json.dumps(meta or {}), time.time()),
+        )
+        self.conn.commit()
+
+    def images_for_run(self, run_id: int | None = None) -> list[sqlite3.Row]:
+        if run_id is None:
+            query = (
+                "SELECT images.*, jobs.subject, jobs.lora_id, jobs.epoch, jobs.strength,"
+                " jobs.scenario, jobs.seed, jobs.condition FROM images"
+                " JOIN jobs ON jobs.id = images.job_id ORDER BY images.id"
+            )
+            return list(self.conn.execute(query))
+        query = (
+            "SELECT images.*, jobs.subject, jobs.lora_id, jobs.epoch, jobs.strength,"
+            " jobs.scenario, jobs.seed, jobs.condition FROM images"
+            " JOIN jobs ON jobs.id = images.job_id WHERE jobs.run_id = ? ORDER BY images.id"
+        )
+        return list(self.conn.execute(query, (run_id,)))
+
+    def scored_images(self, run_id: int | None = None) -> list[sqlite3.Row]:
+        where = "WHERE j.run_id = ?" if run_id is not None else ""
+        params: tuple[Any, ...] = (run_id,) if run_id is not None else ()
+        query = f"""
+            SELECT i.id, i.path, j.subject, j.lora_id, j.epoch, j.strength, j.scenario, j.seed,
+                   j.condition,
+                   MAX(CASE WHEN s.axis = 'identity' THEN s.value END)  AS identity,
+                   MAX(CASE WHEN s.axis = 'adherence' THEN s.value END) AS adherence,
+                   MAX(CASE WHEN s.axis = 'quality' THEN s.value END)   AS quality,
+                   MAX(CASE WHEN s.axis = 'critical' THEN s.value END)  AS critical
+            FROM images i
+            JOIN jobs j ON j.id = i.job_id
+            LEFT JOIN scores s ON s.image_id = i.id
+            {where}
+            GROUP BY i.id
+            ORDER BY i.id
+        """
+        return list(self.conn.execute(query, params))
+
+    def run_by_name(self, name: str) -> sqlite3.Row | None:
+        return self.conn.execute("SELECT * FROM runs WHERE name = ?", (name,)).fetchone()
+
     # -- reporting ---------------------------------------------------------
     def counts(self, run_id: int | None = None) -> dict[str, int]:
         where = "WHERE run_id=?" if run_id is not None else ""
