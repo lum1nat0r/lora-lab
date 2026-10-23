@@ -185,14 +185,40 @@ def grid_source(root: Path, defaults: Path | None = None) -> Path | None:
     return None
 
 
-def apply_grid(path: Path, source: Path) -> Path:
-    """Create a local grid from an existing one, pointing it at the LoRA list."""
+def apply_grid(
+    path: Path, source: Path, valid_subjects: set[str] | None = None
+) -> Path:
+    """Point a local grid at the discovered LoRA list.
+
+    An existing hand-edited grid is preserved, unless its inline LoRAs reference
+    subjects that were not discovered (the classic half-migrated state).
+    """
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if path.exists():
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        inline = raw.get("loras") or []
+        inline_valid = bool(inline) and (
+            valid_subjects is None
+            or all(item.get("subject") in valid_subjects for item in inline)
+        )
+        if inline and inline_valid:
+            return path
+        if not inline and raw.get("loras_file"):
+            return path
+        if not inline and not raw.get("loras"):
+            raw["loras_file"] = "config/local/loras.yaml"
+            path.write_text(
+                GRID_HEADER + yaml.safe_dump(raw, sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+            return path
 
     raw = yaml.safe_load(Path(source).read_text(encoding="utf-8")) or {}
     raw["loras"] = []
     raw["loras_file"] = "config/local/loras.yaml"
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         GRID_HEADER + yaml.safe_dump(raw, sort_keys=False, allow_unicode=True),
         encoding="utf-8",

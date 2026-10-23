@@ -96,3 +96,50 @@ def test_apply_grid_points_at_loras_file(tmp_path: Path, root: Path) -> None:
     assert data["loras"] == []
     assert data["loras_file"] == "config/local/loras.yaml"
     assert data["bindings"]["lora_node"] == 11
+
+
+def _copy_project(root: Path, target: Path) -> None:
+    import shutil
+
+    shutil.copytree(
+        root / "config", target / "config", ignore=shutil.ignore_patterns("local")
+    )
+    shutil.copytree(root / "workflows", target / "workflows")
+
+
+def test_inline_loras_with_unknown_subjects_fall_back_to_local(tmp_path: Path, root: Path) -> None:
+    import yaml
+
+    target = tmp_path / "project"
+    _copy_project(root, target)
+    (target / "config" / "local").mkdir()
+
+    (target / "config" / "local" / "subjects.yaml").write_text(
+        yaml.safe_dump({"subjects": [{"id": "real", "trigger": "real"}]})
+    )
+    (target / "config" / "local" / "loras.yaml").write_text(
+        yaml.safe_dump(
+            {"loras": [{"id": "real_ep1", "subject": "real", "file": "r/1.safetensors", "epoch": 1}]}
+        )
+    )
+
+    project = load_project(target)
+    assert [lora.id for lora in project.grid.loras] == ["real_ep1"]
+
+
+def test_apply_grid_repairs_inconsistent_existing_grid(tmp_path: Path, root: Path) -> None:
+    import shutil
+
+    import yaml
+
+    from lora_lab.discover import apply_grid
+
+    target = tmp_path / "local" / "grid.yaml"
+    target.parent.mkdir(parents=True)
+    shutil.copy(root / "config" / "grid.yaml", target)
+
+    apply_grid(target, root / "config" / "grid.yaml", {"real"})
+
+    data = yaml.safe_load(target.read_text())
+    assert data["loras"] == []
+    assert data["loras_file"] == "config/local/loras.yaml"

@@ -269,14 +269,13 @@ def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
             print(f"wrote {local / 'loras.yaml'}")
 
         grid_path = local / "grid.yaml"
-        if not grid_path.exists():
-            from .discover import apply_grid, grid_source
+        from .discover import apply_grid, grid_source
 
-            defaults = os.environ.get("LORA_LAB_DEFAULTS")
-            source = grid_source(project.root, Path(defaults) if defaults else None)
-            if source is not None:
-                apply_grid(grid_path, source)
-                print(f"wrote {grid_path} (from {source})")
+        defaults = os.environ.get("LORA_LAB_DEFAULTS")
+        source = grid_source(project.root, Path(defaults) if defaults else None)
+        if source is not None:
+            apply_grid(grid_path, source, {item["id"] for item in subjects})
+            print(f"wrote {grid_path} (from {source})")
         if grid_path.exists():
             print("# grid is ready: loras_file points at config/local/loras.yaml")
     return 0

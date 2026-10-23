@@ -179,12 +179,17 @@ def _index(items: list[dict[str, Any]], kind: str) -> dict[str, Any]:
 
 
 def _merge_loras(
-    root: Path, cfg_dir: Path, grid: GridConfig, use_local: bool
+    root: Path,
+    cfg_dir: Path,
+    grid: GridConfig,
+    use_local: bool,
+    valid_subjects: set[str] | None = None,
 ) -> GridConfig:
     """Load LoRA entries from ``loras_file`` or ``config/local/loras.yaml``.
 
-    ``discover --apply`` writes the local file, so the hand-maintained grid does
-    not have to be rewritten.
+    The generated list is authoritative when the inline entries are missing or
+    reference subjects that no longer exist. That makes a half-migrated config
+    (example grid + discovered subjects) self-healing instead of a hard error.
     """
 
     source: Path | None = None
@@ -192,10 +197,15 @@ def _merge_loras(
         source = Path(grid.loras_file)
         if not source.is_absolute():
             source = root / source
-    elif not grid.loras and use_local:
-        candidate = cfg_dir / "local" / "loras.yaml"
-        if candidate.exists():
-            source = candidate
+    elif use_local:
+        inline_valid = bool(grid.loras) and (
+            valid_subjects is None
+            or all(lora.subject in valid_subjects for lora in grid.loras)
+        )
+        if not inline_valid:
+            candidate = cfg_dir / "local" / "loras.yaml"
+            if candidate.exists():
+                source = candidate
 
     if source is None or not source.exists():
         return grid
@@ -245,14 +255,17 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
         for key, value in _index(scenarios_raw.get("scenarios", []), "scenario").items()
     }
     grid = GridConfig(**grid_raw)
-    grid = _merge_loras(root, cfg_dir, grid, use_local)
+    grid = _merge_loras(root, cfg_dir, grid, use_local, set(subjects))
 
     if not grid.loras:
         raise ValueError("grid.loras is empty — add entries or point loras_file at a file")
 
     for lora in grid.loras:
         if lora.subject not in subjects:
-            raise ValueError(f"lora {lora.id!r} references unknown subject {lora.subject!r}")
+            raise ValueError(
+                f"lora {lora.id!r} references unknown subject {lora.subject!r} — "
+                "run `lora-lab discover --apply` or fix config/local/subjects.yaml"
+            )
 
     data_dir = Path(os.environ.get("LORA_LAB_DATA_DIR") or project.get("data_dir", "data"))
     if not data_dir.is_absolute():
