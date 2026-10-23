@@ -64,6 +64,9 @@ Subjekt lässt sich keine sinnvolle Schwelle fitted — dann bricht `score
 
 ## Automatisch statt abtippen
 
+Der Web-Port ist über die Stack-Variable `LORA_LAB_PORT` konfigurierbar
+(Default 8199); im Container bleibt er fest auf 8099.
+
 Im Container:
 
 ```bash

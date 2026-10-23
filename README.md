@@ -150,7 +150,8 @@ The image is built by `.github/workflows/docker.yml` on every push to `main`.
 An empty `config` mount is seeded from the examples baked into the image, so a
 fresh deployment starts without copying files first.
 
-`COMFYUI_URL` points at the existing ComfyUI container. When its output folder
+The host port is set with `LORA_LAB_PORT` (default 8199); the container always
+listens on 8099. `COMFYUI_URL` points at the existing ComfyUI container. When its output folder
 is mounted (`COMFY_OUTPUT_DIR`), images are read from disk instead of over HTTP.
 The mount contract and the container paths for subjects, references and
 datasets are in [docs/PATHS.md](docs/PATHS.md).

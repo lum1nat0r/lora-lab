@@ -16,7 +16,7 @@ services:
     container_name: lora-lab
     restart: unless-stopped
     ports:
-      - "8099:8099"
+      - "${LORA_LAB_PORT:-8199}:8099"
     environment:
       COMFYUI_URL: ${COMFYUI_URL:-http://192.168.188.62:8188}
       COMFY_OUTPUT_DIR: /comfy-output
