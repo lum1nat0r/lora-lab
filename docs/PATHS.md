@@ -62,6 +62,23 @@ gebraucht: eines zum Matchen, eines für die Impostor-Verteilung. Mit nur einem
 Subjekt lässt sich keine sinnvolle Schwelle fitted — dann bricht `score
 --identity` mit einer klaren Meldung ab.
 
+## Config-Dateien
+
+Beim ersten Start legt der Entrypoint fehlende Dateien aus `/app/defaults` in
+`/app/config` ab: `project.yaml`, `subjects.yaml`, `scenarios.yaml`,
+`grid.yaml`. Vorhandene Dateien werden nie überschrieben.
+
+`discover --apply` schreibt danach:
+
+| Datei | Inhalt |
+|---|---|
+| `config/local/subjects.yaml` | erkannte Subjekte mit Container-Pfaden |
+| `config/local/loras.yaml` | erkannte LoRAs mit Epoche und Rank |
+| `config/local/grid.yaml` | Kopie des Grids, mit `loras_file` statt inline-LoRAs |
+
+Die Datei in `config/local/` gewinnt immer gegen die gleichnamige Datei in
+`config/`.
+
 ## Automatisch statt abtippen
 
 Der Web-Port ist über die Stack-Variable `LORA_LAB_PORT` konfigurierbar

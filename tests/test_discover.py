@@ -80,3 +80,19 @@ def test_loras_file_is_merged(tmp_path: Path, root: Path) -> None:
 
     project = load_project(target)
     assert [lora.id for lora in project.grid.loras] == ["x_ep1"]
+
+
+def test_apply_grid_points_at_loras_file(tmp_path: Path, root: Path) -> None:
+    from lora_lab.discover import apply_grid, grid_source
+
+    source = grid_source(root)
+    assert source is not None
+    target = tmp_path / "local" / "grid.yaml"
+    apply_grid(target, source)
+
+    import yaml
+
+    data = yaml.safe_load(target.read_text())
+    assert data["loras"] == []
+    assert data["loras_file"] == "config/local/loras.yaml"
+    assert data["bindings"]["lora_node"] == 11
