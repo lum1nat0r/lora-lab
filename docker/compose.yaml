@@ -8,16 +8,17 @@
 
 services:
   lora-lab:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    image: lora-lab:latest
+    image: ghcr.io/lum1nat0r/lora-lab:latest
+    # local development: uncomment to build instead of pulling
+    # build:
+    #   context: ..
+    #   dockerfile: docker/Dockerfile
     container_name: lora-lab
     restart: unless-stopped
     ports:
       - "8099:8099"
     environment:
-      COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
+      COMFYUI_URL: ${COMFYUI_URL:-http://192.168.188.62:8188}
       COMFY_OUTPUT_DIR: /comfy-output
       LORA_LAB_DATA_DIR: /app/data
       # optional: local VLM judge (vLLM / llama.cpp / Ollama, OpenAI dialect)
@@ -32,9 +33,8 @@ services:
       - /mnt/user/ai/models:/models:ro
       # Fizgig run history (training parameters, loss logs)
       - /mnt/user/ai/training/fizgig/Fizgig/user_data:/fizgig:ro
-      # recommended: read rendered images from disk instead of over HTTP.
-      # Add your ComfyUI output path here; it is not known yet.
-      # - <comfyui-output-host-path>:/comfy-output:ro
+      # read rendered images from disk instead of over HTTP
+      - /mnt/user/ai/output:/comfy-output:ro
 
 # If lora-lab and ComfyUI are not on the same user-defined network, attach
 # lora-lab to ComfyUI's network instead of using host addresses:

@@ -5,3 +5,4 @@ data/
 .ruff_cache/
 tests/
 .git/
+config/local/

@@ -216,12 +216,20 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
     root = Path(root).resolve()
     cfg_dir = root / "config"
 
+    defaults_dir = os.environ.get("LORA_LAB_DEFAULTS")
+    defaults = Path(defaults_dir) if defaults_dir else None
+
     def cfg(name: str) -> Path:
         if use_local:
             local = cfg_dir / "local" / name
             if local.exists():
                 return local
-        return cfg_dir / name
+        primary = cfg_dir / name
+        if primary.exists():
+            return primary
+        if defaults is not None and (defaults / name).exists():
+            return defaults / name
+        return primary
 
     project = _read_yaml(cfg("project.yaml")) or {}
     subjects_raw = _read_yaml(cfg("subjects.yaml")) or {}

@@ -16,10 +16,10 @@ bleibt:
 | `/mnt/user/ai/training/datasets` | `/datasets` | ro | Referenz- und Trainingsordner |
 | `/mnt/user/ai/models` | `/models` | ro | LoRA-Dateien, Metadaten |
 | `/mnt/user/ai/training/fizgig/Fizgig/user_data` | `/fizgig` | ro | Run-History, Loss-Logs |
-| *(dein ComfyUI-Output)* | `/comfy-output` | ro | fertige Bilder (schneller als HTTP) |
+| `/mnt/user/ai/output` | `/comfy-output` | ro | fertige Bilder (schneller als HTTP) |
 
-Der ComfyUI-Output fehlt noch — sag mir den Host-Pfad, dann ergänze ich ihn.
-Bis dahin lädt lora-lab die Bilder über ComfyUIs `/view`-Endpunkt.
+ComfyUI läuft unter `http://192.168.188.62:8188` (oder über Tailscale); der
+Container erreicht es per LAN-IP.
 
 Config und Data sind Pflicht, `/datasets` für Referenzen. Ohne `/comfy-output`
 werden die Bilder über `/view` heruntergeladen — funktioniert, ist aber

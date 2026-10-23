@@ -101,3 +101,21 @@ def test_duplicate_lora_ids_rejected() -> None:
 def test_missing_config_is_reported(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         load_project(tmp_path)
+
+
+def test_defaults_fallback(tmp_path: Path, monkeypatch, root: Path) -> None:
+    import shutil
+
+    from lora_lab.config import load_project
+
+    defaults = tmp_path / "defaults"
+    shutil.copytree(
+        root / "config", defaults, ignore=shutil.ignore_patterns("local")
+    )
+    app = tmp_path / "app"
+    (app / "config").mkdir(parents=True)
+
+    monkeypatch.setenv("LORA_LAB_DEFAULTS", str(defaults))
+    project = load_project(app)
+    assert project.grid.name == "example-grid"
+    assert project.grid.loras

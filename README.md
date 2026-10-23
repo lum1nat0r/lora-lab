@@ -143,8 +143,12 @@ imported instead of typed in by hand.
 
 ```bash
 cd docker
-docker compose up -d --build
+docker compose up -d          # pulls ghcr.io/lum1nat0r/lora-lab:latest
 ```
+
+The image is built by `.github/workflows/docker.yml` on every push to `main`.
+An empty `config` mount is seeded from the examples baked into the image, so a
+fresh deployment starts without copying files first.
 
 `COMFYUI_URL` points at the existing ComfyUI container. When its output folder
 is mounted (`COMFY_OUTPUT_DIR`), images are read from disk instead of over HTTP.
