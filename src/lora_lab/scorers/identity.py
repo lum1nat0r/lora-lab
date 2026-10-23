@@ -292,8 +292,13 @@ class ArcFaceEmbedder:
         self._input = self._session.get_inputs()[0].name
         self._output = self._session.get_outputs()[0].name
         self._detector = cv2.FaceDetectorYN.create(str(yunet), "", (640, 640), 0.6, 0.3, 5000)
+        self._cache_path: str | None = None
+        self._cache = None
 
     def _read(self, path: str):
+        # identity and face counting look at the same image back to back
+        if path == self._cache_path and self._cache is not None:
+            return self._cache
         image = self._cv2.imread(path)
         if image is None:
             return None, []
@@ -301,7 +306,8 @@ class ArcFaceEmbedder:
         self._detector.setInputSize((width, height))
         _, faces = self._detector.detect(image)
         if faces is None:
-            return image, []
+            self._cache_path, self._cache = path, (image, [])
+            return self._cache
         parsed = []
         for row in faces:
             parsed.append(
@@ -313,7 +319,8 @@ class ArcFaceEmbedder:
                     score=float(row[14]),
                 )
             )
-        return image, parsed
+        self._cache_path, self._cache = path, (image, parsed)
+        return self._cache
 
     def detect(self, path: str) -> list[Face]:
         _image, faces = self._read(path)
