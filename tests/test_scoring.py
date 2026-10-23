@@ -245,3 +245,43 @@ def test_align_face_shape() -> None:
     aligned = align_face(image, ARCFACE_DST)
     assert aligned is not None
     assert aligned.shape == (112, 112, 3)
+
+
+def test_arcface_pipeline_with_fake_models(tmp_path: Path) -> None:
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("cv2")
+    from lora_lab.scorers.identity import ArcFaceEmbedder
+
+    class FakeTensor:
+        name = "input"
+
+    class FakeSession:
+        def get_inputs(self):
+            return [FakeTensor()]
+
+        def get_outputs(self):
+            return [FakeTensor()]
+
+        def run(self, outputs, feed):
+            blob = feed["input"]
+            assert blob.shape == (1, 3, 112, 112)
+            return [np.array([[3.0, 4.0]], dtype=np.float32)]
+
+    class FakeDetector:
+        def setInputSize(self, size):
+            self.size = size
+
+        def detect(self, image):
+            row = np.array(
+                [[10, 10, 50, 50, 40, 30, 70, 30, 55, 45, 42, 60, 68, 60, 0.95]],
+                dtype=np.float32,
+            )
+            return 1, row
+
+    image = tmp_path / "face.png"
+    Image.new("RGB", (100, 100), (120, 90, 80)).save(image)
+
+    embedder = ArcFaceEmbedder(session=FakeSession(), detector=FakeDetector())
+    vector = embedder.embed(str(image))
+    assert vector == pytest.approx([0.6, 0.8])
+    assert len(embedder.detect(str(image))) == 1

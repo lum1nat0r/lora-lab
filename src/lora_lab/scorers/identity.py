@@ -267,10 +267,12 @@ class ArcFaceEmbedder:
         self,
         model_path: str | None = None,
         detector_path: str | None = None,
+        *,
+        session=None,
+        detector=None,
     ) -> None:
         try:
             import cv2
-            import onnxruntime
         except ImportError as exc:  # pragma: no cover - optional extras
             raise RuntimeError(
                 "identity scoring needs the score extras: pip install 'lora-lab[score]'"
@@ -279,19 +281,34 @@ class ArcFaceEmbedder:
         import os
         from pathlib import Path
 
-        arcface = Path(model_path or os.environ.get("ARCFACE_MODEL", DEFAULT_ARCFACE))
-        yunet = Path(detector_path or os.environ.get("YUNET_MODEL", DEFAULT_YUNET))
-        for path, label in ((arcface, "ArcFace"), (yunet, "YuNet")):
-            if not path.is_file():
-                raise RuntimeError(f"{label} model not found: {path}")
-
         self._cv2 = cv2
-        self._session = onnxruntime.InferenceSession(
-            str(arcface), providers=["CPUExecutionProvider"]
-        )
-        self._input = self._session.get_inputs()[0].name
-        self._output = self._session.get_outputs()[0].name
-        self._detector = cv2.FaceDetectorYN.create(str(yunet), "", (640, 640), 0.6, 0.3, 5000)
+
+        if session is None:
+            try:
+                import onnxruntime
+            except ImportError as exc:  # pragma: no cover - optional extras
+                raise RuntimeError(
+                    "identity scoring needs the score extras: pip install 'lora-lab[score]'"
+                ) from exc
+            arcface = Path(model_path or os.environ.get("ARCFACE_MODEL", DEFAULT_ARCFACE))
+            if not arcface.is_file():
+                raise RuntimeError(f"ArcFace model not found: {arcface}")
+            session = onnxruntime.InferenceSession(
+                str(arcface), providers=["CPUExecutionProvider"]
+            )
+
+        self._session = session
+        self._input = session.get_inputs()[0].name
+        self._output = session.get_outputs()[0].name
+
+        if detector is None:
+            yunet = Path(detector_path or os.environ.get("YUNET_MODEL", DEFAULT_YUNET))
+            if not yunet.is_file():
+                raise RuntimeError(f"YuNet model not found: {yunet}")
+            detector = cv2.FaceDetectorYN.create(
+                str(yunet), "", (640, 640), 0.6, 0.3, 5000
+            )
+        self._detector = detector
         self._cache_path: str | None = None
         self._cache = None
 
