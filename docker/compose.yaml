@@ -28,12 +28,13 @@ services:
       # required
       - /mnt/user/appdata/lora-lab/config:/app/config
       - /mnt/user/appdata/lora-lab/data:/app/data
-      - /mnt/user/Datasets:/datasets:ro
-      # recommended: read rendered images from disk instead of over HTTP
-      - /mnt/user/appdata/comfyui/output:/comfy-output:ro
-      # optional
-      - /mnt/user/appdata/comfyui/models:/models:ro
-      - /mnt/user/appdata/fizgig/user_data:/fizgig:ro
+      - /mnt/user/ai/training/datasets:/datasets:ro
+      - /mnt/user/ai/models:/models:ro
+      # Fizgig run history (training parameters, loss logs)
+      - /mnt/user/ai/training/fizgig/Fizgig/user_data:/fizgig:ro
+      # recommended: read rendered images from disk instead of over HTTP.
+      # Add your ComfyUI output path here; it is not known yet.
+      # - <comfyui-output-host-path>:/comfy-output:ro
 
 # If lora-lab and ComfyUI are not on the same user-defined network, attach
 # lora-lab to ComfyUI's network instead of using host addresses:

@@ -72,11 +72,10 @@ class GridConfig(BaseModel):
     width: int = 1024
     height: int = 1024
     loras: list[LoraEntry] = Field(default_factory=list)
+    loras_file: str | None = None
 
     @model_validator(mode="after")
     def _check(self) -> GridConfig:
-        if not self.loras:
-            raise ValueError("grid.loras is empty")
         ids = [lora.id for lora in self.loras]
         if len(ids) != len(set(ids)):
             raise ValueError("grid.loras contains duplicate ids")
@@ -179,6 +178,33 @@ def _index(items: list[dict[str, Any]], kind: str) -> dict[str, Any]:
     return out
 
 
+def _merge_loras(
+    root: Path, cfg_dir: Path, grid: GridConfig, use_local: bool
+) -> GridConfig:
+    """Load LoRA entries from ``loras_file`` or ``config/local/loras.yaml``.
+
+    ``discover --apply`` writes the local file, so the hand-maintained grid does
+    not have to be rewritten.
+    """
+
+    source: Path | None = None
+    if grid.loras_file:
+        source = Path(grid.loras_file)
+        if not source.is_absolute():
+            source = root / source
+    elif not grid.loras and use_local:
+        candidate = cfg_dir / "local" / "loras.yaml"
+        if candidate.exists():
+            source = candidate
+
+    if source is None or not source.exists():
+        return grid
+
+    raw = _read_yaml(source) or {}
+    entries = [LoraEntry(**item) for item in raw.get("loras", [])]
+    return grid.model_copy(update={"loras": entries})
+
+
 def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
     """Load a project.
 
@@ -197,7 +223,7 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
                 return local
         return cfg_dir / name
 
-    project = _read_yaml(cfg_dir / "project.yaml") or {}
+    project = _read_yaml(cfg("project.yaml")) or {}
     subjects_raw = _read_yaml(cfg("subjects.yaml")) or {}
     scenarios_raw = _read_yaml(cfg("scenarios.yaml")) or {}
     grid_raw = _read_yaml(cfg("grid.yaml")) or {}
@@ -211,6 +237,10 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
         for key, value in _index(scenarios_raw.get("scenarios", []), "scenario").items()
     }
     grid = GridConfig(**grid_raw)
+    grid = _merge_loras(root, cfg_dir, grid, use_local)
+
+    if not grid.loras:
+        raise ValueError("grid.loras is empty — add entries or point loras_file at a file")
 
     for lora in grid.loras:
         if lora.subject not in subjects:

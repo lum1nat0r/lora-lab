@@ -75,3 +75,39 @@ def test_epoch_from_filename_patterns() -> None:
     assert epoch_from_filename(Path("x-000066.safetensors")) == 66
     assert epoch_from_filename(Path("x-000066-state.safetensors")) == 66
     assert epoch_from_filename(Path("x.safetensors")) is None
+
+
+def test_read_fizgig_runs(tmp_path: Path) -> None:
+    import json
+
+    from lora_lab.importers.fizgig import normalise_run, read_runs
+
+    payload = [
+        {
+            "id": "abc123",
+            "family": "moss_image",
+            "lora": "lora_a",
+            "output_dir": "/out/lora_a",
+            "image_folder": "/datasets/subject_a/train",
+            "values": {"network_dim": 16, "learning_rate": 1e-4, "max_train_epochs": 70},
+            "started_at": 1792775892.0,
+            "ended_at": 1792780000.0,
+            "result": "finished",
+            "notes": "slide default",
+        }
+    ]
+    (tmp_path / "runs.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    runs = read_runs(tmp_path)
+    assert len(runs) == 1
+    record = normalise_run(runs[0])
+    assert record["lora"] == "lora_a"
+    assert record["settings"]["network_dim"] == 16
+    assert record["notes"] == "slide default"
+
+
+def test_read_runs_missing(tmp_path: Path) -> None:
+    from lora_lab.importers.fizgig import read_runs
+
+    with pytest.raises(FileNotFoundError):
+        read_runs(tmp_path)

@@ -13,13 +13,17 @@ bleibt:
 |---|---|---|---|
 | `/mnt/user/appdata/lora-lab/config` | `/app/config` | rw | Konfiguration inkl. `local/` |
 | `/mnt/user/appdata/lora-lab/data` | `/app/data` | rw | SQLite, gerenderte Bilder, Reports |
-| `/mnt/user/Datasets` | `/datasets` | ro | Referenz- und Trainingsordner |
-| `/mnt/user/appdata/comfyui/output` | `/comfy-output` | ro | fertige Bilder (schneller als HTTP) |
-| `/mnt/user/appdata/comfyui/models` | `/models` | ro | optional: LoRA-Dateien für Metadaten/Hash |
-| `/mnt/user/appdata/fizgig/user_data` | `/fizgig` | ro | optional: Run-Metadaten, Loss-Logs |
+| `/mnt/user/ai/training/datasets` | `/datasets` | ro | Referenz- und Trainingsordner |
+| `/mnt/user/ai/models` | `/models` | ro | LoRA-Dateien, Metadaten |
+| `/mnt/user/ai/training/fizgig/Fizgig/user_data` | `/fizgig` | ro | Run-History, Loss-Logs |
+| *(dein ComfyUI-Output)* | `/comfy-output` | ro | fertige Bilder (schneller als HTTP) |
 
-Nur die ersten drei sind Pflicht. Ohne `/comfy-output` werden die Bilder über
-`/view` heruntergeladen — funktioniert, ist aber langsamer.
+Der ComfyUI-Output fehlt noch — sag mir den Host-Pfad, dann ergänze ich ihn.
+Bis dahin lädt lora-lab die Bilder über ComfyUIs `/view`-Endpunkt.
+
+Config und Data sind Pflicht, `/datasets` für Referenzen. Ohne `/comfy-output`
+werden die Bilder über `/view` heruntergeladen — funktioniert, ist aber
+langsamer.
 
 ## Was in die Config kommt
 
@@ -57,6 +61,21 @@ Für die Kalibrierung werden mindestens **zwei Subjekte** mit Referenzen
 gebraucht: eines zum Matchen, eines für die Impostor-Verteilung. Mit nur einem
 Subjekt lässt sich keine sinnvolle Schwelle fitted — dann bricht `score
 --identity` mit einer klaren Meldung ab.
+
+## Automatisch statt abtippen
+
+Im Container:
+
+```bash
+docker exec -it lora-lab lora-lab --root /app discover \
+  --datasets /datasets --loras /models/loras --apply
+```
+
+Das schreibt `config/local/subjects.yaml` und `config/local/loras.yaml`;
+danach in `config/local/grid.yaml` einmal `loras_file: config/local/loras.yaml`
+setzen (oder die inline `loras` entfernen). Erkannt werden `refs`/`reference`/
+`heldout` und `train`/`images`/`dataset` als Unterordner, Trigger aus
+`trigger.txt` oder den `ss_*`-Metadaten der LoRA-Datei.
 
 ## Prüfen
 

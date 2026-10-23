@@ -96,6 +96,10 @@ lora-lab score --vlm-url URL --vlm-model NAME
                                 attribute verdicts from a local VLM
 lora-lab report [--json]        rank LoRAs from stored scores
 lora-lab check-refs             verify references are held out from training
+lora-lab discover               scan /datasets and /models/loras, print config
+lora-lab import-fizgig /fizgig  list training runs and their settings
+lora-lab discover               scan /datasets and /models/loras, print config
+lora-lab import-fizgig /fizgig  list training runs and their settings
 lora-lab audit PATH             dataset audit (resolutions, captions, duplicates)
 lora-lab import-fizgig FILE     training parameters from a .safetensors header
 lora-lab serve                  web dashboard

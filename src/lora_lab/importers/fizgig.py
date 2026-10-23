@@ -120,3 +120,40 @@ def import_lora(path: Path) -> dict[str, Any]:
     record["epoch_from_filename"] = epoch_from_filename(path)
     record["metadata"] = meta
     return record
+
+
+# --------------------------------------------------------------------------
+# Fizgig run history
+# --------------------------------------------------------------------------
+
+# Fizgig keeps user_data/runs.json: a list of
+#   {id, source, family, lora, output_dir, image_folder, values, started_at,
+#    ended_at, result, progress, notes}
+# `values` are the settings the run was started with (the trainer's flags).
+
+def read_runs(user_data: Path) -> list[dict[str, Any]]:
+    path = Path(user_data)
+    if path.is_dir():
+        path = path / "runs.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"no runs.json at {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise SafetensorsError(f"{path}: expected a list of runs")
+    return [item for item in data if isinstance(item, dict)]
+
+
+def normalise_run(run: dict[str, Any]) -> dict[str, Any]:
+    values = run.get("values") or {}
+    return {
+        "id": run.get("id"),
+        "family": run.get("family"),
+        "lora": run.get("lora"),
+        "result": run.get("result"),
+        "started_at": run.get("started_at"),
+        "ended_at": run.get("ended_at"),
+        "output_dir": run.get("output_dir"),
+        "image_folder": run.get("image_folder"),
+        "notes": run.get("notes"),
+        "settings": values if isinstance(values, dict) else {},
+    }

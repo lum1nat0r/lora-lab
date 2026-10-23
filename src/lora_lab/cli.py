@@ -75,6 +75,12 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("check-refs", help="verify reference images are held out from training")
 
+    discover = sub.add_parser("discover", help="scan mounted datasets and LoRAs")
+    discover.add_argument("--datasets", default="/datasets")
+    discover.add_argument("--loras", default="/models/loras")
+    discover.add_argument("--apply", action="store_true", help="write config/local/*.yaml")
+    discover.add_argument("--check", action="store_true", help="also run the held-out check")
+
     imp = sub.add_parser("import-fizgig", help="read training metadata from a LoRA file")
     imp.add_argument("path")
     imp.add_argument("--json", action="store_true")
@@ -108,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(Path(args.path), Path(args.against) if args.against else None)
     if args.command == "check-refs":
         return _check_refs(project)
+    if args.command == "discover":
+        return _discover(project, args)
     if args.command == "import-fizgig":
         return _import_fizgig(Path(args.path), args.json)
     if args.command == "serve":
@@ -197,6 +205,73 @@ def check_paths(project: ProjectConfig) -> None:
         if subject.ref_dir and subject.train_dir:
             if contains(project.path(subject.ref_dir), project.path(subject.train_dir)):
                 print(f"WARNING     {subject.id}: reference and training folder overlap")
+
+
+def _discover(project: ProjectConfig, args: argparse.Namespace) -> int:
+    from .discover import (
+        apply_loras,
+        apply_subjects,
+        discover_loras,
+        discover_subjects,
+        loras_yaml,
+        subjects_yaml,
+    )
+    from .heldout import overlap
+
+    datasets = Path(args.datasets)
+    if not datasets.is_dir():
+        print(f"datasets path not found: {datasets}", file=sys.stderr)
+        return 2
+
+    subjects = discover_subjects(datasets)
+    if not subjects:
+        print(f"no subject folders under {datasets}", file=sys.stderr)
+        return 2
+
+    print(f"# subjects under {datasets}")
+    for item in subjects:
+        print(
+            f"#   {item['id']:<20} refs={item['ref_count']:<3} train={item['train_count']:<4}"
+            f" {item['ref_dir'] or '-'}"
+        )
+    print(subjects_yaml(subjects))
+
+    if args.check:
+        print("# held-out check")
+        for item in subjects:
+            if not (item["ref_dir"] and item["train_dir"]):
+                continue
+            result = overlap(Path(item["ref_dir"]), Path(item["train_dir"]))
+            mark = "ok" if result["clean"] else "LEAK"
+            print(f"#   {item['id']:<20} {mark} duplicates={len(result['duplicates'])}")
+        print()
+
+    lora_root = Path(args.loras)
+    loras: list[dict] = []
+    if lora_root.is_dir():
+        loras = discover_loras(lora_root, subjects=[item["id"] for item in subjects])
+        print(f"# {len(loras)} LoRA files under {lora_root}")
+        for item in loras:
+            print(
+                f"#   {item['id']:<32} ep{item['epoch']:<4} rank={item['rank'] or '?'}"
+                f" {item['file']}"
+            )
+        print(loras_yaml(loras))
+    else:
+        print(f"# loras path not found: {lora_root}", file=sys.stderr)
+
+    if args.apply:
+        local = project.root / "config" / "local"
+        apply_subjects(local / "subjects.yaml", subjects)
+        print(f"wrote {local / 'subjects.yaml'}")
+        if loras:
+            apply_loras(local / "loras.yaml", loras)
+            print(f"wrote {local / 'loras.yaml'}")
+            print(
+                "# add `loras_file: config/local/loras.yaml` to config/local/grid.yaml"
+                " (or remove its inline loras)"
+            )
+    return 0
 
 
 def _check_refs(project: ProjectConfig) -> int:
@@ -488,6 +563,37 @@ def _audit(path: Path, against: Path | None = None) -> int:
 
 
 def _import_fizgig(path: Path, as_json: bool) -> int:
+    from .importers.fizgig import normalise_run, read_runs
+
+    if path.is_dir() or path.name == "runs.json":
+        try:
+            runs = [normalise_run(run) for run in read_runs(path)]
+        except (FileNotFoundError, SafetensorsError, json.JSONDecodeError) as exc:
+            print(f"import error: {exc}", file=sys.stderr)
+            return 2
+        if as_json:
+            print(json.dumps(runs, indent=2, ensure_ascii=False))
+            return 0
+        print(f"{len(runs)} runs")
+        print(f"{'started':<17} {'family':<12} {'lora':<28} {'result':<9} settings")
+        for run in runs[-40:]:
+            import datetime
+
+            started = run["started_at"]
+            try:
+                stamp = datetime.datetime.fromtimestamp(float(started)).strftime("%Y-%m-%d %H:%M")
+            except (TypeError, ValueError, OSError):
+                stamp = "?"
+            settings = run["settings"]
+            rank = settings.get("network_dim") or settings.get("lora_rank") or "?"
+            lr = settings.get("learning_rate") or "?"
+            epochs = settings.get("max_train_epochs") or settings.get("epochs") or "?"
+            print(
+                f"{stamp:<17} {str(run['family'])[:12]:<12} {str(run['lora'])[:28]:<28}"
+                f" {str(run['result']):<9} rank={rank} lr={lr} epochs={epochs}"
+            )
+        return 0
+
     try:
         record = import_lora(path)
     except (FileNotFoundError, SafetensorsError) as exc:
