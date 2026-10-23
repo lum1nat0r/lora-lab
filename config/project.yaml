@@ -1,0 +1,10 @@
+# Global project settings. Paths are relative to this project root.
+comfyui_url: "http://127.0.0.1:8188"
+
+# Optional: path to ComfyUI's output directory when it is mounted locally
+# (e.g. /comfy-output inside the container). Avoids downloading every image
+# over HTTP. Leave null to use the /view endpoint.
+comfy_output_dir: null
+
+data_dir: "data"
+db_path: "data/lora-lab.sqlite"

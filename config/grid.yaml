@@ -1,0 +1,63 @@
+# Example render grid. The real grid lives in config/local/grid.yaml and is
+# not committed.
+#
+# Node ids refer to workflows/example-sft-dmd.json. `lora_node` is the LoRA
+# under test; the runner overwrites its file and strength and records the full
+# stack in the prompt.
+#
+# `file` is the path ComfyUI uses below models/loras (lora_name), not a local
+# filesystem path.
+
+name: example-grid
+workflow: workflows/example-sft-dmd.json
+profile: fast
+
+bindings:
+  lora_node: 11
+  lora_file_input: lora_name
+  lora_strength_input: strength_model
+  positive:
+    id: 4
+    input: text
+  negative:
+    id: 5
+    input: text
+  seed:
+    id: 7
+    input: seed
+  save:
+    id: 9
+    input: filename_prefix
+  size_node: 6
+  size_inputs: [width, height]
+  drop_nodes: [12, 13]
+
+profiles:
+  fast: {}
+  # 30 steps, CFG 4, no distilled speed LoRA: the quality reference used to
+  # validate the fast path on the top candidates.
+  reference:
+    workflow: workflows/example-sft-reference.json
+    overrides:
+      7:
+        steps: 30
+        cfg: 4.0
+        sampler_name: res_multistep
+        scheduler: simple
+
+strengths: [0.8, 1.0]
+seeds: [11, 22, 33]
+negative_prompt: "worst quality, bad anatomy, watermark, jpeg artifact"
+width: 1024
+height: 1024
+conditions: [lora]
+
+loras:
+  - id: lora_a_ep20
+    subject: subject_a
+    file: example/lora_a-000020.safetensors
+    epoch: 20
+  - id: lora_b_ep20
+    subject: subject_b
+    file: example/lora_b-000020.safetensors
+    epoch: 20

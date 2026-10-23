@@ -1,0 +1,71 @@
+# Example scenario suite. The real suite lives in config/local/scenarios.yaml
+# and is deliberately not committed.
+#
+# A scenario is a prompt plus a set of binary attributes. Only the attributes
+# are scored, never the whole prompt, so adherence stays attributable.
+#
+# Conventions for your own suite:
+#   * put the trigger word first
+#   * describe only what you want to measure — anything you leave out is left to
+#     the LoRA
+#   * 100-180 words works well for MOSS-Image (it was trained on long captions)
+#   * 5-6 attributes per scenario, each answerable with yes/no
+#   * no artist or style names (they confound the comparison)
+#
+# category: core     -> part of the default grid
+#           optional -> only used when grid.scenarios lists them
+#           explicit -> never auto-included
+
+scenarios:
+  - id: still_life
+    category: core
+    notes: Basic object fidelity and lighting direction.
+    prompt: >-
+      {trigger}, a matte ceramic vase on a pale oak table, seamless warm-grey
+      background, soft key light from the left, subtle contact shadow, 85mm lens,
+      product photograph.
+    attributes:
+      - id: object_present
+        question: Is a ceramic vase visible?
+      - id: table_visible
+        question: Is the vase standing on a wooden table?
+      - id: background_plain
+        question: Is the background plain and uncluttered?
+      - id: light_from_left
+        question: Is the main light coming from the left side?
+      - id: no_text
+        question: Is the image free of text, letters and logos?
+
+  - id: landscape
+    category: core
+    notes: Composition and scene adherence; checks whether the LoRA hijacks the scene.
+    prompt: >-
+      {trigger}, a wide landscape of low rolling hills at dusk, long shadows, a
+      single tree on the ridge, 24mm lens, photorealistic.
+    attributes:
+      - id: hills
+        question: Are rolling hills visible?
+      - id: dusk_sky
+        question: Does the sky look like dusk or sunset?
+      - id: single_tree
+        question: Is there exactly one prominent tree on the ridge?
+      - id: wide_angle
+        question: Does the image look like a wide-angle landscape shot?
+      - id: no_people
+        question: Are there no people in the image?
+
+  - id: texture_macro
+    category: core
+    notes: Fine detail and close-up coherence.
+    prompt: >-
+      {trigger}, extreme close-up of woven linen fabric, raking light from the
+      right, visible thread structure, 100mm macro lens.
+    attributes:
+      - id: fabric_texture
+        question: Is woven fabric texture clearly visible?
+      - id: macro
+        question: Is this an extreme close-up filling the frame with texture?
+      - id: light_from_right
+        question: Is the raking light coming from the right?
+      - id: no_text
+        question: Is the image free of text and watermarks?

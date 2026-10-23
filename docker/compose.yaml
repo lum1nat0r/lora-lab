@@ -1,0 +1,30 @@
+# Unraid / Docker Compose
+#
+# lora-lab only orchestrates: ComfyUI does the rendering on the GPU. Point
+# COMFYUI_URL at the existing ComfyUI container (or its LAN address).
+#
+# Mounting ComfyUI's output directory is optional but recommended: the runner
+# then reads images straight from disk instead of downloading them over HTTP.
+
+services:
+  lora-lab:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: lora-lab:latest
+    container_name: lora-lab
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      COMFYUI_URL: ${COMFYUI_URL:-http://192.168.1.10:8188}
+      COMFY_OUTPUT_DIR: /comfy-output
+      LORA_LAB_DATA_DIR: /app/data
+      TZ: Europe/Vienna
+    volumes:
+      - /mnt/user/appdata/lora-lab/config:/app/config
+      - /mnt/user/appdata/lora-lab/data:/app/data
+      # optional, read-only: ComfyUI's output folder
+      - /mnt/user/appdata/comfyui/output:/comfy-output:ro
+      # optional, read-only: datasets for audits and leakage checks
+      - /mnt/user/Datasets:/datasets:ro

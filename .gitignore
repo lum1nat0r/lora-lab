@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# App data
+data/
+*.sqlite
+*.sqlite-*
+runs/
+shortlist/
+
+# Local, uncommitted configuration (real subjects/scenarios/grid)
+config/local/
+.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

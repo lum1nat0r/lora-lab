@@ -1,0 +1,24 @@
+# Example configuration. The real file lives in config/local/ and is not
+# committed (see .gitignore). `lora-lab` prefers config/local/subjects.yaml.
+#
+#   trigger       activation token used in every prompt
+#   ref_dir       held-out reference images for the subject-fidelity metric.
+#                 These must NOT be part of the training set.
+#   train_dir     the dataset the LoRA was trained on (leakage + dataset audit)
+#   identity_prompt  optional prose description; only used by the
+#                 `identity_in_text` control condition
+#
+# A subject can be a person, an object, a product or a style reference.
+
+subjects:
+  - id: subject_a
+    trigger: subja
+    ref_dir: datasets/subject_a/refs
+    train_dir: datasets/subject_a/train
+    identity_prompt: a short prose description of subject A
+
+  - id: subject_b
+    trigger: subjb
+    ref_dir: datasets/subject_b/refs
+    train_dir: datasets/subject_b/train
+    identity_prompt: a short prose description of subject B

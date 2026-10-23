@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><div class="k">Jobs</div><div class="v">{{ counts.get('total', 0) }}</div></div>
+  <div class="card"><div class="k">Done</div><div class="v ok">{{ counts.get('done', 0) }}</div></div>
+  <div class="card"><div class="k">Pending</div><div class="v">{{ counts.get('pending', 0) }}</div></div>
+  <div class="card"><div class="k">Failed</div><div class="v {{ 'fail' if counts.get('failed', 0) else '' }}">{{ counts.get('failed', 0) }}</div></div>
+  <div class="card"><div class="k">Images</div><div class="v">{{ images }}</div></div>
+</div>
+
+<h2>Grid</h2>
+<table>
+  <tr><th>LoRAs</th><td>{{ grid.loras | length }} Einträge</td></tr>
+  <tr><th>Strengths</th><td>{{ grid.strengths | join(', ') }}</td></tr>
+  <tr><th>Seeds</th><td>{{ grid.seeds | join(', ') }}</td></tr>
+  <tr><th>Szenarien</th><td>{{ grid.scenarios | join(', ') if grid.scenarios else 'alle Kern-Szenarien' }}</td></tr>
+  <tr><th>ComfyUI</th><td><code>{{ project.comfyui_url }}</code></td></tr>
+</table>
+
+<h2>Runs</h2>
+{% if runs %}
+<table>
+  <tr><th>Name</th><th>Profil</th><th>Angelegt</th></tr>
+  {% for run in runs %}
+  <tr><td>{{ run.name }}</td><td>{{ run.profile }}</td><td class="muted">{{ run.created_at }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">Noch kein Lauf. <code>lora-lab generate --dry-run</code> zeigt den Plan.</p>
+{% endif %}
+
+<h2>Letzte Bilder</h2>
+{% if recent %}
+<div class="grid">
+  {% for img in recent %}
+  <div class="shot">
+    <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
+    <div class="meta">
+      {{ img.subject }} · ep{{ img.epoch }} · s{{ img.strength }}<br>
+      {{ img.scenario }} · seed {{ img.seed }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">Noch keine Bilder gerendert.</p>
+{% endif %}
+{% endblock %}
