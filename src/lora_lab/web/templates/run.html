@@ -20,6 +20,7 @@
 </div>
 
 {% if not loras %}<div class="flash err">Keine LoRAs gewählt — <a href="/loras">jetzt auswählen</a>.</div>{% endif %}
+{% if not scenarios %}<div class="flash err">Keine Szenarien im Grid — <a href="/setup">Szenarien anlegen</a>.</div>{% endif %}
 {% if not vlm %}<div class="flash">Kein VLM konfiguriert: Adhärenz wird nicht bewertet. Setze
   <code>VLM_JUDGE_URL</code> und <code>VLM_JUDGE_MODEL</code> im Container.</div>{% endif %}
 {% if not identity %}<div class="flash">Identitäts-Scoring ist nicht verfügbar: die ONNX-Modelle

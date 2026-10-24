@@ -44,6 +44,8 @@
       <td><span class="pill">{{ scenario.category }}</span></td>
       <td class="num">{{ scenario.attributes | length }}</td>
     </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">Noch keine Szenarien angelegt — <a href="/setup/scenarios/new">jetzt anlegen</a>.</td></tr>
     {% endfor %}
   </table>
 

@@ -302,3 +302,44 @@ scenarios:
     assert response.status_code == 303
     data = yaml.safe_load((target / "config" / "local" / "scenarios.yaml").read_text())
     assert any(item["id"] == "imported" for item in data["scenarios"])
+
+
+def test_deleting_planned_scenarios_warns_once_without_crashing(web) -> None:
+    client, target, _ = web
+    response = client.post(
+        "/setup/grid/save",
+        data={
+            "name": "test-grid",
+            "strengths": "0.8, 1.0",
+            "seeds": "1, 2",
+            "scenarios": ["still_life", "landscape", "texture_macro"],
+            "profile": "fast",
+            "negative_prompt": "bad",
+            "width": "1024",
+            "height": "1024",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    for sid in ("landscape", "still_life", "texture_macro"):
+        res = client.post(f"/setup/scenarios/{sid}/delete", follow_redirects=False)
+        assert res.status_code == 303
+
+    index = client.get("/")
+    assert index.status_code == 200
+    assert "Gelöschte Szenarien wurden aus dem geplanten Lauf entfernt" in index.text
+    for sid in ("landscape", "still_life", "texture_macro"):
+        assert sid in index.text
+
+    # Notice is shown only once.
+    index_again = client.get("/")
+    assert index_again.status_code == 200
+    assert "Gelöschte Szenarien wurden aus dem geplanten Lauf entfernt" not in index_again.text
+
+    for url in ("/setup", "/setup/grid", "/run", "/loras"):
+        assert client.get(url).status_code == 200
+
+    saved_grid = yaml.safe_load((target / "config" / "local" / "grid.yaml").read_text())
+    assert "scenarios" not in saved_grid
+

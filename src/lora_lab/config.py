@@ -147,6 +147,7 @@ class ProjectConfig(BaseModel):
     subjects: dict[str, Subject]
     scenarios: dict[str, Scenario]
     grid: GridConfig
+    removed_scenarios: list[str] = Field(default_factory=list)
 
     def path(self, value: str | Path) -> Path:
         p = Path(value)
@@ -156,10 +157,10 @@ class ProjectConfig(BaseModel):
         wanted = self.grid.scenarios
         if wanted is None:
             return [s for s in self.scenarios.values() if s.category == "core"]
-        missing = [sid for sid in wanted if sid not in self.scenarios]
-        if missing:
-            raise ValueError(f"grid references unknown scenarios: {', '.join(missing)}")
-        return [self.scenarios[sid] for sid in wanted]
+        present = [self.scenarios[sid] for sid in wanted if sid in self.scenarios]
+        if present or not wanted:
+            return present
+        return [s for s in self.scenarios.values() if s.category == "core"]
 
 
 def _read_yaml(path: Path) -> Any:
@@ -227,6 +228,49 @@ def _merge_loras(
     return grid.model_copy(update={"loras": entries})
 
 
+def _prune_scenarios(
+    cfg_dir: Path,
+    grid: GridConfig,
+    valid_scenarios: set[str],
+    use_local: bool,
+) -> tuple[GridConfig, list[str]]:
+    """Drop deleted scenarios from the grid selection instead of crashing."""
+
+    if grid.scenarios is None:
+        return grid, []
+    missing = [sid for sid in grid.scenarios if sid not in valid_scenarios]
+    if not missing:
+        return grid, []
+
+    logger.warning(
+        "ignoring %d unknown scenario(s) in grid: %s",
+        len(missing),
+        ", ".join(missing),
+    )
+    kept = [sid for sid in grid.scenarios if sid in valid_scenarios]
+    grid = grid.model_copy(update={"scenarios": kept or None})
+
+    local_grid = cfg_dir / "local" / "grid.yaml"
+    if use_local and local_grid.exists():
+        try:
+            raw = _read_yaml(local_grid) or {}
+            if isinstance(raw, dict) and "scenarios" in raw:
+                if kept:
+                    raw["scenarios"] = kept
+                else:
+                    raw.pop("scenarios", None)
+                text = "# Edited in the lora-lab UI. Not committed.\n" + yaml.safe_dump(
+                    raw, sort_keys=False, allow_unicode=True, width=1000
+                )
+                tmp = local_grid.with_suffix(".yaml.tmp")
+                tmp.write_text(text, encoding="utf-8")
+                tmp.replace(local_grid)
+        except OSError:
+            pass
+
+    return grid, missing
+
+
 def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
     """Load a project.
 
@@ -268,6 +312,7 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
     }
     grid = GridConfig(**grid_raw)
     grid = _merge_loras(root, cfg_dir, grid, use_local, set(subjects))
+    grid, removed_scenarios = _prune_scenarios(cfg_dir, grid, set(scenarios), use_local)
 
     if not grid.loras:
         raise ValueError("grid.loras is empty — add entries or point loras_file at a file")
@@ -304,4 +349,5 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
         subjects=subjects,
         scenarios=scenarios,
         grid=grid,
+        removed_scenarios=removed_scenarios,
     )

@@ -21,6 +21,7 @@
 <main>
 {% if request.query_params.get('ok') %}<div class="flash ok">{{ request.query_params.get('ok') }}</div>{% endif %}
 {% if request.query_params.get('err') %}<div class="flash err">{{ request.query_params.get('err') }}</div>{% endif %}
+{% if request.app.state.lora is defined %}{% for notice in request.app.state.lora.pop_notices() %}<div class="flash">{{ notice }}</div>{% endfor %}{% endif %}
 {% block content %}{% endblock %}
 </main>
 <script src="/static/app.js"></script>

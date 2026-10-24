@@ -90,6 +90,8 @@ async def run_generate(request: Request) -> RedirectResponse:
             return _flash("/run", err="limit is not a number")
     if not state.project.grid.loras:
         return _flash("/run", err="no LoRAs selected — see the LoRAs page")
+    if not state.project.scenario_list():
+        return _flash("/run", err="no scenarios configured — see Setup")
     try:
         state.runner.start("generate", state.runner.generate, limit)
     except RuntimeError as exc:
