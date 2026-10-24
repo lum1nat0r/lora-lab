@@ -1,13 +1,15 @@
 """Held-out check: are reference images part of the training set?
 
 Identity scores are only meaningful if the references were not trained on.
-Exact duplicates are cheap to detect by content hash; near-duplicates need
-embeddings and are reported separately once a scorer is available.
+Exact duplicates are cheap to detect by content hash. Near-duplicates (the
+same photo re-encoded, resized or cropped) need face embeddings; they are
+found with the identity embedder when the score extras are installed.
 """
 
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Iterable
 from pathlib import Path
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
@@ -67,6 +69,55 @@ def overlap(ref_dir: Path, train_dir: Path) -> dict:
         "duplicate_rate": round(len(duplicates) / ref_count, 4) if ref_count else 0.0,
         "clean": not duplicates,
     }
+
+
+# ArcFace: two photos of one person sit around 0.5-0.8; the same photo after
+# resizing, re-encoding or a light crop stays above ~0.9
+NEAR_DUPLICATE = 0.92
+
+
+def near_duplicates(
+    ref_dir: Path,
+    train_dir: Path,
+    embedder,
+    *,
+    threshold: float = NEAR_DUPLICATE,
+    cache_path: Path | None = None,
+    exact: Iterable[dict] = (),
+) -> list[dict]:
+    """Reference/training pairs whose face embeddings are nearly identical.
+
+    Only images with a detectable face take part. Pass the ``duplicates`` of
+    :func:`overlap` as ``exact`` to leave those pairs out.
+    """
+
+    from .scorers.identity import (
+        _load_embedding_cache,
+        _save_embedding_cache,
+        cosine,
+        embed_files,
+    )
+
+    cache = _load_embedding_cache(cache_path)
+    refs, dirty_refs = embed_files(list_images(ref_dir), embedder, cache)
+    train, dirty_train = embed_files(list_images(train_dir), embedder, cache)
+    if dirty_refs or dirty_train:
+        _save_embedding_cache(cache_path, cache)
+
+    known = {(d["ref"], d["train"]) for d in exact}
+    found = []
+    for ref_file, ref_vec in refs:
+        best_file, best = None, -1.0
+        for train_file, train_vec in train:
+            similarity = cosine(ref_vec, train_vec)
+            if similarity > best:
+                best_file, best = train_file, similarity
+        if best_file is None or best < threshold:
+            continue
+        pair = (str(ref_file.relative_to(ref_dir)), str(best_file.relative_to(train_dir)))
+        if pair not in known:
+            found.append({"ref": pair[0], "train": pair[1], "similarity": round(best, 4)})
+    return found
 
 
 def contains(ref_dir: Path, train_dir: Path) -> bool:

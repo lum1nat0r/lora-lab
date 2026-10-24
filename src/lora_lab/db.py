@@ -75,6 +75,25 @@ CREATE TABLE IF NOT EXISTS scores (
     UNIQUE(image_id, scorer, version, axis)
 );
 
+-- human gold labels: attribute id or "defect:<key>" -> yes/no
+CREATE TABLE IF NOT EXISTS labels (
+    id          INTEGER PRIMARY KEY,
+    image_id    INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    key         TEXT NOT NULL,
+    value       INTEGER NOT NULL,
+    created_at  REAL NOT NULL,
+    UNIQUE(image_id, key)
+);
+
+-- blind A/B votes between two images of the same scenario and seed
+CREATE TABLE IF NOT EXISTS comparisons (
+    id          INTEGER PRIMARY KEY,
+    left_id     INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    right_id    INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    winner      TEXT NOT NULL CHECK (winner IN ('left', 'right', 'tie')),
+    created_at  REAL NOT NULL
+);
+
 CREATE VIEW IF NOT EXISTS run_progress AS
 SELECT run_id,
        status,
@@ -392,9 +411,11 @@ class Store:
                    MAX(CASE WHEN s.axis = 'adherence' THEN s.value END)    AS adherence,
                    MAX(CASE WHEN s.axis = 'quality' THEN s.value END)      AS quality,
                    MAX(CASE WHEN s.axis = 'critical' THEN s.value END)     AS critical,
+                   MAX(CASE WHEN s.axis = 'defects' THEN s.value END)      AS defects,
                    MAX(CASE WHEN s.axis = 'identity' THEN s.meta_json END)  AS identity_meta,
                    MAX(CASE WHEN s.axis = 'adherence' THEN s.meta_json END) AS adherence_meta,
-                   MAX(CASE WHEN s.axis = 'critical' THEN s.meta_json END)  AS critical_meta
+                   MAX(CASE WHEN s.axis = 'critical' THEN s.meta_json END)  AS critical_meta,
+                   MAX(CASE WHEN s.axis = 'defects' THEN s.meta_json END)   AS defects_meta
             FROM images i
             JOIN jobs j ON j.id = i.job_id
             LEFT JOIN scores s ON s.image_id = i.id
@@ -403,6 +424,82 @@ class Store:
             ORDER BY i.id
         """
         return list(self.conn.execute(query, params))
+
+    # -- human review --------------------------------------------------------
+    def set_labels(self, image_id: int, labels: dict[str, bool]) -> None:
+        """Replace the gold labels of one image."""
+
+        now = time.time()
+        self.conn.execute("DELETE FROM labels WHERE image_id = ?", (image_id,))
+        self.conn.executemany(
+            "INSERT INTO labels(image_id, key, value, created_at) VALUES (?,?,?,?)",
+            [(image_id, key, int(bool(value)), now) for key, value in labels.items()],
+        )
+        self.conn.commit()
+
+    def labels(self) -> dict[int, dict[str, bool]]:
+        out: dict[int, dict[str, bool]] = {}
+        for row in self.conn.execute("SELECT image_id, key, value FROM labels"):
+            out.setdefault(int(row["image_id"]), {})[str(row["key"])] = bool(row["value"])
+        return out
+
+    def label_count(self) -> int:
+        row = self.conn.execute("SELECT COUNT(DISTINCT image_id) AS n FROM labels").fetchone()
+        return int(row["n"]) if row else 0
+
+    def judge_meta(self) -> list[sqlite3.Row]:
+        """Stored judge verdicts (adherence and defect meta) of every labelled image."""
+
+        return list(
+            self.conn.execute(
+                "SELECT image_id, scorer, meta_json FROM scores"
+                " WHERE scorer IN ('adherence', 'defects')"
+                " AND image_id IN (SELECT image_id FROM labels)"
+            )
+        )
+
+    def next_label_image(self, run_id: int | None = None) -> sqlite3.Row | None:
+        """A random image whose file has no labels yet, judged images first."""
+
+        where = "AND jobs.run_id = ?" if run_id is not None else ""
+        params: tuple[Any, ...] = (run_id,) if run_id is not None else ()
+        # reused jobs share one file across runs: label the file, not the row, once
+        return self.conn.execute(
+            "SELECT images.*, jobs.subject, jobs.lora_id, jobs.epoch, jobs.strength,"
+            " jobs.scenario, jobs.seed FROM images JOIN jobs ON jobs.id = images.job_id"
+            " WHERE images.path NOT IN"
+            "   (SELECT i.path FROM labels l JOIN images i ON i.id = l.image_id)"
+            f" {where}"
+            " ORDER BY EXISTS (SELECT 1 FROM scores s WHERE s.image_id = images.id"
+            "   AND s.scorer IN ('adherence', 'defects')) DESC, RANDOM() LIMIT 1",
+            params,
+        ).fetchone()
+
+    def add_comparison(self, left_id: int, right_id: int, winner: str) -> None:
+        self.conn.execute(
+            "INSERT INTO comparisons(left_id, right_id, winner, created_at) VALUES (?,?,?,?)",
+            (left_id, right_id, winner, time.time()),
+        )
+        self.conn.commit()
+
+    def comparisons(self, run_id: int | None = None) -> list[sqlite3.Row]:
+        """Votes with the operating point of both sides."""
+
+        where = "WHERE lj.run_id = ?" if run_id is not None else ""
+        params: tuple[Any, ...] = (run_id,) if run_id is not None else ()
+        return list(
+            self.conn.execute(
+                "SELECT c.winner,"
+                " lj.lora_id AS left_lora, lj.epoch AS left_epoch, lj.strength AS left_strength,"
+                " rj.lora_id AS right_lora, rj.epoch AS right_epoch,"
+                " rj.strength AS right_strength, lj.subject AS subject"
+                " FROM comparisons c"
+                " JOIN images li ON li.id = c.left_id JOIN jobs lj ON lj.id = li.job_id"
+                " JOIN images ri ON ri.id = c.right_id JOIN jobs rj ON rj.id = ri.job_id"
+                f" {where} ORDER BY c.id",
+                params,
+            )
+        )
 
     def run_by_name(self, name: str) -> sqlite3.Row | None:
         return self.conn.execute("SELECT * FROM runs WHERE name = ?", (name,)).fetchone()

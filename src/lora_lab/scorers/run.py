@@ -11,7 +11,7 @@ from ..config import ProjectConfig
 from ..db import Store
 from .adherence import AdherenceScorer
 from .base import ImageRef, Scorer
-from .defects import FaceCountScorer, HealthScorer
+from .defects import DefectScorer, FaceCountScorer, HealthScorer
 from .identity import (
     ArcFaceEmbedder,
     IdentityScorer,
@@ -44,6 +44,8 @@ def build_default_scorers(
     if judge is not None:
         attributes = {s.id: s.attributes for s in project.scenarios.values()}
         scorers.append(AdherenceScorer(judge, attributes))
+        # a second request per image; keeps the axes separately skippable
+        scorers.append(DefectScorer(judge))
 
     if not identity:
         return scorers, None

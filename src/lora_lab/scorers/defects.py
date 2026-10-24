@@ -13,6 +13,8 @@ otherwise, which is why they are tracked separately from the index.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from PIL import Image, ImageFilter, ImageStat
 
 from .base import ImageRef, Score
@@ -35,6 +37,22 @@ CATALOG: dict[str, int] = {
 }
 
 CRITICAL = {"multi_face", "extra_limb", "anatomy_error", "multi_image", "duplicate_subject"}
+
+# What a judge can decide from the image alone. clothing_ignored,
+# expression_mismatch and background_leak depend on the prompt; the
+# scenario attributes cover those through adherence.
+DEFECT_QUESTIONS: dict[str, str] = {
+    "multi_face": "Does the image show more than one face of the main subject?",
+    "extra_limb": "Does any person or animal have an extra arm or leg?",
+    "extra_hand": "Is there an extra hand that belongs to no arm?",
+    "hand_artifact": "Are there malformed hands (wrong finger count, fused or melted fingers)?",
+    "face_artifact": "Is a face distorted, melted or asymmetric in an unnatural way?",
+    "text_watermark": "Is there visible text, a watermark, a signature or a logo?",
+    "anatomy_error": "Is there a clear anatomy error (twisted body, impossible joints)?",
+    "multi_image": "Is the image split into several panels or a collage?",
+    "duplicate_subject": "Does the main subject appear twice or more?",
+    "blur_lowres": "Is the image noticeably blurry, low resolution or out of focus?",
+}
 
 
 def defect_index(detected: dict[str, int] | None) -> float:
@@ -154,6 +172,8 @@ def leakage(embedding: list[float], training_embeddings: list[list[float]]) -> f
 __all__ = [
     "CATALOG",
     "CRITICAL",
+    "DEFECT_QUESTIONS",
+    "DefectScorer",
     "HealthScorer",
     "defect_index",
     "has_critical",
@@ -200,5 +220,52 @@ class FaceCountScorer:
                 scorer=self.name,
                 version=self.version,
                 meta={"faces": count, "defect_index": round(defect_index(detected), 4)},
+            )
+        ]
+
+
+@dataclass(frozen=True)
+class DefectQuestion:
+    id: str
+    question: str
+    weight: float = 1.0
+
+
+class DefectScorer:
+    """Semantic defects from the same judge that answers the attributes.
+
+    Each catalogue key is a yes/no question where *yes* means the defect is
+    present. The axis value is the severity-weighted :func:`defect_index`;
+    ``meta`` keeps which keys were detected, judged absent or left open, so
+    the report can derive critical failures and the gold set can check the
+    judge per key.
+    """
+
+    name = "defects"
+    version = "v1"
+    axes = ("defects",)
+
+    def __init__(self, judge) -> None:
+        self.judge = judge
+        self.questions = [DefectQuestion(key, text) for key, text in DEFECT_QUESTIONS.items()]
+
+    def score(self, image: ImageRef) -> list[Score]:
+        verdicts = self.judge.judge(image, self.questions)
+        detected = [q.id for q in self.questions if verdicts.get(q.id) is True]
+        absent = [q.id for q in self.questions if verdicts.get(q.id) is False]
+        missing = [q.id for q in self.questions if verdicts.get(q.id) is None]
+        judged = bool(detected or absent)
+        return [
+            Score(
+                axis="defects",
+                value=defect_index({key: CATALOG[key] for key in detected}) if judged else None,
+                scorer=self.name,
+                version=self.version,
+                meta={
+                    "detected": detected,
+                    "absent": absent,
+                    "missing": missing,
+                    "judge": getattr(self.judge, "name", "?"),
+                },
             )
         ]

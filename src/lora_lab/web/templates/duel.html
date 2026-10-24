@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Blind-A/B{% endblock %}
+{% block content %}
+
+<div class="report-head">
+  <div>
+    <h2 style="margin:0">Blind-A/B-Abnahme</h2>
+    <p class="hint" style="margin:4px 0 0">
+      Zwei Bilder mit gleichem Szenario und Seed, aber verschiedener Einstellung – welche ist dir lieber?
+      {% if finalists %}Es treten die Top {{ finalists|length }} des automatischen Rankings gegeneinander an.{% endif %}
+      Tasten: <kbd>1</kbd> links · <kbd>2</kbd> gleich · <kbd>3</kbd> rechts.
+    </p>
+  </div>
+  {% if runs %}
+  <form method="get" action="/duel" class="run-filter">
+    <label for="run-select" style="margin:0">Run:</label>
+    <select id="run-select" name="run" class="select-sm" onchange="this.form.submit()">
+      <option value="" {% if not selected %}selected{% endif %}>Alle Runs</option>
+      {% for r in runs %}<option value="{{ r.name }}" {% if selected == r.name %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
+{% if pair %}
+{% set left, right = pair %}
+{% if scenario %}<p class="hint">Prompt: {{ scenario.render(project.subjects[left.subject].trigger if left.subject in project.subjects else '') }}</p>{% endif %}
+<form method="post" action="/duel" id="duel-form">
+  <input type="hidden" name="left_id" value="{{ left.id }}">
+  <input type="hidden" name="right_id" value="{{ right.id }}">
+  <input type="hidden" name="run" value="{{ selected or '' }}">
+  <div class="duel">
+    <button type="submit" name="winner" value="left" class="duel-pick" data-key="1">
+      <img src="/images/{{ left.path }}" alt="Bild links">
+      <span>Links besser</span>
+    </button>
+    <button type="submit" name="winner" value="right" class="duel-pick" data-key="3">
+      <img src="/images/{{ right.path }}" alt="Bild rechts">
+      <span>Rechts besser</span>
+    </button>
+  </div>
+  <div class="actions" style="justify-content:center">
+    <button type="submit" name="winner" value="tie" data-key="2">Gleich gut</button>
+    <a class="button" href="/duel{% if selected %}?run={{ selected|urlencode }}{% endif %}">Überspringen</a>
+  </div>
+</form>
+<script>
+document.addEventListener("keydown", (e) => {
+  const btn = document.querySelector(`#duel-form [data-key="${e.key}"]`);
+  if (btn && !e.target.closest("select")) btn.click();
+});
+</script>
+{% else %}
+<div class="card">Keine vergleichbaren Bildpaare: es braucht mindestens zwei Einstellungen mit gleichem Szenario und Seed.</div>
+{% endif %}
+
+<h2>Bradley-Terry-Stand <span class="muted" style="text-transform:none;letter-spacing:0">· {{ votes }} Stimmen</span></h2>
+{% if standings %}
+<table>
+  <tr>
+    <th>#</th><th>Einstellung</th>
+    <th title="Wahrscheinlichkeit, gegen eine durchschnittliche Einstellung zu gewinnen">Siegchance</th>
+    <th title="90%-Bootstrap-Intervall">Bereich</th>
+    <th>Duelle</th><th>S / U / N</th>
+  </tr>
+  {% for row in standings %}
+  <tr>
+    <td class="num"><strong>{{ loop.index }}</strong></td>
+    <td><strong>{{ row.op }}</strong></td>
+    <td class="num"><strong>{{ '%.0f%%'|format(row.score * 100) }}</strong></td>
+    <td class="num muted">{{ '%.0f–%.0f%%'|format(row.low * 100, row.high * 100) if row.low is not none else '–' }}</td>
+    <td class="num">{{ row.n }}</td>
+    <td class="num muted">{{ row.wins }} / {{ row.ties }} / {{ row.losses }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="hint">Überlappen sich die Bereiche zweier Einstellungen, ist der Unterschied noch nicht belastbar – weiter abstimmen.</p>
+{% else %}
+<div class="card">Noch keine Stimmen.</div>
+{% endif %}
+{% endblock %}

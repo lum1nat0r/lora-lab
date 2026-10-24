@@ -311,6 +311,12 @@ function openImageModal(el) {
     leakVal.textContent = d.leakage || "";
     leakRow.hidden = !d.leakage;
   }
+  const defRow = document.getElementById("im-defects-row");
+  const defVal = document.getElementById("im-defects");
+  if (defRow && defVal) {
+    defVal.textContent = d.defects || "";
+    defRow.hidden = !d.defects;
+  }
   modal.classList.add("open");
 }
 

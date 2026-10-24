@@ -78,6 +78,15 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("check-refs", help="verify reference images are held out from training")
 
+    compare = sub.add_parser("compare", help="paired difference of two operating points")
+    compare.add_argument("a", help="operating point as printed by report, e.g. lora_a@ep20@s1")
+    compare.add_argument("b")
+    compare.add_argument("--run-a", default=None, help="run of A (default: all runs)")
+    compare.add_argument("--run-b", default=None, help="run of B (default: all runs)")
+    compare.add_argument("--bootstrap", type=int, default=2000)
+
+    sub.add_parser("calibrate", help="judge agreement with the human gold labels")
+
     discover = sub.add_parser("discover", help="scan mounted datasets and LoRAs")
     discover.add_argument("--datasets", default="/datasets")
     discover.add_argument("--loras", default="/models/loras")
@@ -138,6 +147,10 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(Path(args.path), Path(args.against) if args.against else None)
     if args.command == "check-refs":
         return _check_refs(project)
+    if args.command == "compare":
+        return _compare(project, args)
+    if args.command == "calibrate":
+        return _calibrate(project)
     if args.command == "import-fizgig":
         return _import_fizgig(Path(args.path), args.json)
 
@@ -345,7 +358,14 @@ def _discover(root: Path, args: argparse.Namespace) -> int:
 
 
 def _check_refs(project: ProjectConfig) -> int:
-    from .heldout import overlap
+    from .heldout import near_duplicates, overlap
+    from .scorers.identity import ArcFaceEmbedder
+
+    try:
+        embedder = ArcFaceEmbedder()
+    except RuntimeError as exc:
+        embedder = None
+        print(f"near-duplicate check skipped: {exc}")
 
     checked = 0
     leaks = 0
@@ -362,18 +382,32 @@ def _check_refs(project: ProjectConfig) -> int:
             continue
 
         result = overlap(ref, train)
+        near = (
+            near_duplicates(
+                ref,
+                train,
+                embedder,
+                cache_path=project.data_dir / "ref_embeddings.json",
+                exact=result["duplicates"],
+            )
+            if embedder is not None
+            else []
+        )
         checked += 1
-        status = "ok" if result["clean"] else "LEAK"
+        status = "ok" if result["clean"] and not near else "LEAK"
         print(
             f"{subject.id:<16} {status:<5} refs={result['ref_images']:<3}"
             f" train={result['train_images']:<4} duplicates={len(result['duplicates'])}"
+            + (f" near={len(near)}" if embedder is not None else "")
         )
-        if not result["clean"]:
+        if status == "LEAK":
             leaks += 1
-            for item in result["duplicates"][:10]:
-                print(f"    {item['ref']}  ==  {item['train']}")
-            if len(result["duplicates"]) > 10:
-                print(f"    ... {len(result['duplicates']) - 10} more")
+            lines = [f"    {d['ref']}  ==  {d['train']}" for d in result["duplicates"]]
+            lines += [f"    {d['ref']}  ~=  {d['train']}  ({d['similarity']:.3f})" for d in near]
+            for line in lines[:10]:
+                print(line)
+            if len(lines) > 10:
+                print(f"    ... {len(lines) - 10} more")
 
     print(f"\n{checked} subjects checked · {leaks} with leaks · {skipped} skipped")
     return 0 if leaks == 0 else 1
@@ -551,7 +585,14 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
 
 
 def _report(project: ProjectConfig, args: argparse.Namespace) -> int:
-    from .analyze.report import build_report, format_results, report_json, samples_from_store
+    from .analyze.agreement import calibration
+    from .analyze.report import (
+        build_report,
+        format_results,
+        gate_by_calibration,
+        report_json,
+        samples_from_store,
+    )
     from .analyze.stats import analyse_all
 
     if not project.db_path.exists():
@@ -571,8 +612,13 @@ def _report(project: ProjectConfig, args: argparse.Namespace) -> int:
             print(report_json(build_report(store, run_id=run_id, bootstrap=args.bootstrap)))
             return 0
 
-        samples = samples_from_store(store, run_id)
+        judge = calibration(store)
+        samples = gate_by_calibration(samples_from_store(store, run_id), judge)
         results = analyse_all(samples, bootstrap=args.bootstrap)
+
+    for kind, info in judge.items():
+        if info["status"] == "rejected":
+            print(f"{kind} judge rejected (kappa {info['kappa']:.2f}) — axis excluded", file=sys.stderr)
 
     if not results:
         print("no scored images yet — run `lora-lab score` first", file=sys.stderr)
@@ -591,6 +637,73 @@ def _report(project: ProjectConfig, args: argparse.Namespace) -> int:
                 f"  {result.lora_id[:28]:<28} weakest: "
                 + ", ".join(f"{name} {value:.2f}" for name, value in worst)
             )
+    return 0
+
+
+def _compare(project: ProjectConfig, args: argparse.Namespace) -> int:
+    from .analyze.agreement import calibration
+    from .analyze.report import gate_by_calibration, paired_report, samples_from_store
+
+    if not project.db_path.exists():
+        print("no database yet — run `lora-lab generate` first", file=sys.stderr)
+        return 2
+
+    with Store(project.db_path) as store:
+        judge = calibration(store)
+        samples = {}
+        for side, name in (("a", args.run_a), ("b", args.run_b)):
+            run_id = None
+            if name:
+                run = store.run_by_name(name)
+                if run is None:
+                    print(f"unknown run: {name}", file=sys.stderr)
+                    return 2
+                run_id = int(run["id"])
+            samples[side] = gate_by_calibration(samples_from_store(store, run_id), judge)
+
+    result = paired_report(samples["a"], samples["b"], args.a, args.b, bootstrap=args.bootstrap)
+    if result is None:
+        print(f"no shared scenario/seed cells between {args.a} and {args.b}", file=sys.stderr)
+        return 2
+
+    verdict = {
+        "a": f"{args.a} is better",
+        "b": f"{args.b} is better",
+        "none": "no reliable difference",
+    }[result["verdict"]]
+    print(f"A  {args.a}\nB  {args.b}")
+    print(
+        f"A-B {result['mean_diff']:+.3f}  CI95 [{result['lcb']:+.3f}, {result['ucb']:+.3f}]"
+        f"  · {result['pairs']} paired cells in {result['scenarios']} scenarios"
+    )
+    print(f"cells won/lost/tied by A: {result['wins']}/{result['losses']}/{result['ties']}")
+    for name, diff in sorted(result["per_scenario"].items(), key=lambda item: item[1]):
+        print(f"  {name:<24} {diff:+.3f}")
+    print(verdict)
+    return 0
+
+
+def _calibrate(project: ProjectConfig) -> int:
+    from .analyze.agreement import MIN_LABELS, calibration
+
+    if not project.db_path.exists():
+        print("no database yet — run `lora-lab generate` first", file=sys.stderr)
+        return 2
+    with Store(project.db_path) as store:
+        result = calibration(store)
+        labelled = store.label_count()
+
+    print(f"{labelled} labelled images (label them in the web UI under /label)")
+    for kind, info in result.items():
+        kappa = f"{info['kappa']:.2f}" if info["kappa"] is not None else "-"
+        agree = f"{info['agreement']:.0%}" if info["agreement"] is not None else "-"
+        print(
+            f"\n{kind:<10} {info['status']:<13} kappa={kappa} agreement={agree}"
+            f" n={info['n']} (needs {MIN_LABELS})"
+        )
+        for key in info["keys"]:
+            key_kappa = f"{key['kappa']:.2f}" if key["kappa"] is not None else "  -"
+            print(f"  {key['key']:<24} n={key['n']:<4} {key['agreement']:>4.0%}  kappa={key_kappa}")
     return 0
 
 

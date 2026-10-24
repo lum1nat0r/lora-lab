@@ -7,10 +7,10 @@ intervals instead of a single hand-assigned average.
 The subject can be anything a LoRA is trained for — a person, an object, a
 product, a style. Nothing in the tool assumes characters.
 
-> **Status:** rendering and persistence work; the scoring core (subject
-> calibration, attribute adherence, defect/health metrics) and the ranking
-> statistics are implemented and tested. The model-backed judge and the
-> acceptance UI are the next stage; see [Roadmap](#roadmap).
+> **Status:** rendering, persistence, the scoring core (subject calibration,
+> attribute adherence, VLM defect judge, health metrics), judge calibration
+> against a human gold set, blind A/B acceptance and paired run comparison are
+> implemented and tested. See [Roadmap](#roadmap) for what is left.
 
 ## Why
 
@@ -55,7 +55,9 @@ Most of the setup no longer needs a terminal. Open `http://<host>:8199/`:
 | **Setup** | create/edit scenarios (prompt + attribute checklist), create subjects, import a scenario pack, manage reference images |
 | **LoRAs** | scan `models/loras`, pick candidates, assign them to a subject, set epochs |
 | **Run** | see the job count, start generation and scoring, watch the log |
-| **Report** | ranking, scenario matrix, strength/epoch curves |
+| **Report** | ranking, scenario matrix, strength/epoch curves, paired A-vs-B comparison |
+| **Gold-Set** | label images by hand (attributes + defects) to calibrate the VLM judge |
+| **Blind-A/B** | vote between two anonymous images of the same scenario and seed; Bradley-Terry standings |
 
 Reference images are uploaded in the browser into a folder per subject; the
 built-in folder browser picks existing dataset folders instead. Existing
@@ -111,7 +113,11 @@ lora-lab score [--identity]     run scorers over stored images
 lora-lab score --vlm-url URL --vlm-model NAME
                                 attribute verdicts from a local VLM
 lora-lab report [--json]        rank LoRAs from stored scores
+lora-lab compare A B [--run-a R --run-b R]
+                                paired difference of two operating points
+lora-lab calibrate              judge agreement (Cohen's kappa) with the gold set
 lora-lab check-refs             verify references are held out from training
+                                (exact hashes + face near-duplicates)
 lora-lab discover               scan /datasets and /models/loras, print config
 lora-lab import-fizgig /fizgig  list training runs and their settings
 lora-lab audit PATH             dataset audit (resolutions, captions, duplicates)
@@ -128,6 +134,7 @@ Each image gets separate axes, never one blended grade:
 | `identity` | ArcFace (ONNX) similarity to the subject's reference centroid, calibrated to P(same subject) | `None` when no face/reference, never 0 |
 | `critical` | face count from YuNet: more than one face is a critical defect | `None` if detection failed |
 | `adherence` | weighted share of satisfied attributes from the scenario checklist | `None` when nothing could be judged |
+| `defects` | VLM yes/no per catalogue defect, severity-weighted index; critical keys fail the image, severity ≥ 2 blocks a pass | `None` when nothing could be judged |
 | `quality` | model-free health (resolution × sharpness); an aesthetic scorer can replace it | `None` if unreadable |
 
 Identity runs entirely on ONNX: YuNet for face detection, ArcFace
@@ -144,6 +151,25 @@ Ranking renormalises over the axes that exist, averages per scenario first (so a
 heavily sampled scenario cannot dominate), and ranks by a two-level cluster
 bootstrap lower bound. `report` also prints seed stability and each LoRA's two
 weakest scenarios.
+
+### Trusting the judge
+
+The VLM is checked against your own labels (**Gold-Set** page). Agreement is
+Cohen's kappa per judge (attributes, defects). From 30 labelled answers on:
+kappa ≥ 0.6 is trusted, 0.4–0.6 shows a warning, below 0.4 the axis is
+dropped from the ranking. The adherence judge and the defect judge each send
+one request per image.
+
+### Acceptance and comparing training runs
+
+**Blind-A/B** shows two images of the same subject, scenario and seed from
+the top 6 of the automated ranking, without labels. Votes are fitted with
+Bradley-Terry (ties count half) and a bootstrap interval.
+
+`compare` (or the paired section of the report) subtracts B from A cell by
+cell over the scenario/seed cells both have rendered. Because every LoRA gets
+the same seeds, a new training run rendered with the same grid compares
+paired against the old one.
 
 ## Trainer metadata
 
@@ -193,13 +219,13 @@ src/lora_lab/
 
 ## Roadmap
 
-1. **Judge calibration** — validate the VLM against a human-labelled gold set
-   and gate the automated ranking on agreement.
-2. **Defect judge** — semantic defects (extra limbs, text, ignored clothing)
-   from the same VLM, severity weighted.
-3. **Acceptance** — blind A/B tournament with Bradley-Terry.
-4. **Loop** — trigger a new training run, reuse the identical grid, compare
-   paired.
+Done: judge calibration against a gold set, VLM defect judge, blind A/B with
+Bradley-Terry, paired comparison of operating points across runs.
+
+1. **Loop** — trigger a new training run from lora-lab itself. Rendering it
+   on the identical grid and comparing it paired already works.
+2. **Prompt-aware defects** — `clothing_ignored`, `expression_mismatch` and
+   `background_leak` need the scenario prompt in the judge request.
 
 ## License
 

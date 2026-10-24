@@ -351,5 +351,5 @@ def test_build_default_scorers_shared_stack(root: Path) -> None:
         project, judge=FakeJudge(), identity=False
     )
     assert identity_error is None
-    assert [scorer.name for scorer in scorers] == ["health", "adherence"]
+    assert [scorer.name for scorer in scorers] == ["health", "adherence", "defects"]
     assert set(scorers[1].attributes_by_scenario) == set(project.scenarios)

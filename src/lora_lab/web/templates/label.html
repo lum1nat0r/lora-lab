@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Gold-Set{% endblock %}
+{% block content %}
+
+<div class="report-head">
+  <div>
+    <h2 style="margin:0">Gold-Set labeln</h2>
+    <p class="hint" style="margin:4px 0 0">
+      Beantworte die Fragen selbst, ohne die Antwort des VLM zu kennen. Aus deinen Labels wird
+      gemessen, wie gut der Judge mit dir übereinstimmt (Cohens κ). Ab {{ min_labels }} beantworteten
+      Fragen gilt: κ ≥ {{ trust_kappa }} vertrauenswürdig, κ &lt; {{ reject_kappa }} wird die Achse aus dem Ranking genommen.
+    </p>
+  </div>
+  {% if runs %}
+  <form method="get" action="/label" class="run-filter">
+    <label for="run-select" style="margin:0">Run:</label>
+    <select id="run-select" name="run" class="select-sm" onchange="this.form.submit()">
+      <option value="" {% if not selected %}selected{% endif %}>Alle Runs</option>
+      {% for r in runs %}<option value="{{ r.name }}" {% if selected == r.name %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
+{% if image %}
+<form method="post" action="/label" class="review-layout">
+  <input type="hidden" name="image_id" value="{{ image.id }}">
+  <input type="hidden" name="run" value="{{ selected or '' }}">
+  <div class="review-image">
+    <a href="/images/{{ image.path }}" target="_blank"><img src="/images/{{ image.path }}" alt="zu labelndes Bild"></a>
+    {% if scenario %}<p class="hint">Prompt: {{ scenario.render(project.subjects[image.subject].trigger if image.subject in project.subjects else '') }}</p>{% endif %}
+  </div>
+  <div>
+    {% if scenario and scenario.attributes %}
+    <h3>Szenario „{{ image.scenario }}“</h3>
+    <table>
+      {% for attr in scenario.attributes %}
+      <tr>
+        <td>{{ attr.question }}</td>
+        <td style="white-space:nowrap">
+          <label class="inline-check"><input type="radio" name="attr:{{ attr.id }}" value="yes"> Ja</label>
+          <label class="inline-check"><input type="radio" name="attr:{{ attr.id }}" value="no"> Nein</label>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="hint">Unbeantwortete Fragen zählen nicht.</p>
+    {% endif %}
+
+    <h3>Defekte <span class="muted">· ankreuzen, was zu sehen ist</span></h3>
+    {% for key, question in defects.items() %}
+    <label class="inline-check" style="display:flex;margin:6px 0"><input type="checkbox" name="defect:{{ key }}"> {{ question }}</label>
+    {% endfor %}
+
+    <div class="actions">
+      <button type="submit" class="primary">Speichern &amp; weiter</button>
+      <a class="button" href="/label{% if selected %}?run={{ selected|urlencode }}{% endif %}">Überspringen</a>
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="card">Keine ungelabelten Bilder mehr{% if selected %} in diesem Run{% endif %}.</div>
+{% endif %}
+
+<h2>Judge-Kalibrierung <span class="muted" style="text-transform:none;letter-spacing:0">· {{ labelled }} gelabelte Bilder</span></h2>
+<table>
+  <tr><th>Judge</th><th>Status</th><th>κ</th><th>Übereinstimmung</th><th>Fragen</th><th>Schwächste Fragen</th></tr>
+  {% for kind, info in calibration.items() %}
+  <tr>
+    <td><strong>{{ 'Prompt (Adherence)' if kind == 'adherence' else 'Defekte' }}</strong></td>
+    <td class="{{ 'ok' if info.status == 'ok' else ('fail' if info.status == 'rejected' else 'muted') }}">
+      {{ {'ok': 'vertrauenswürdig', 'weak': 'schwach', 'rejected': 'verworfen', 'uncalibrated': 'unkalibriert'}[info.status] }}
+    </td>
+    <td class="num">{{ '%.2f'|format(info.kappa) if info.kappa is not none else '–' }}</td>
+    <td class="num">{{ '%.0f%%'|format(info.agreement * 100) if info.agreement is not none else '–' }}</td>
+    <td class="num">{{ info.n }} / {{ min_labels }}</td>
+    <td class="hint">
+      {% for k in (info['keys']|sort(attribute='agreement'))[:3] %}{{ k.key }} {{ '%.0f%%'|format(k.agreement * 100) }} (n={{ k.n }}){% if not loop.last %} · {% endif %}{% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

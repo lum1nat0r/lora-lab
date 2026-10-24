@@ -23,6 +23,8 @@ import random
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
+from ..scorers.defects import CATALOG, has_critical
+
 AXES = ("identity", "adherence", "quality")
 
 DEFAULT_WEIGHTS = {"identity": 0.45, "adherence": 0.35, "quality": 0.20}
@@ -55,6 +57,7 @@ class Sample:
     leakage: float | None = None
     embedding: tuple[float, ...] | None = None
     defect_index: float | None = None
+    defects: tuple[str, ...] = ()
 
 
 @dataclass
@@ -116,9 +119,16 @@ def image_utility(sample: Sample, weights: dict[str, float] | None = None) -> fl
     )
 
 
+def is_critical(sample: Sample) -> bool:
+    return sample.critical or has_critical(dict.fromkeys(sample.defects, 3))
+
+
 def is_pass(sample: Sample, thresholds: dict[str, float] | None = None) -> bool:
     thresholds = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
-    if sample.critical:
+    if is_critical(sample):
+        return False
+    # severity 1 (blur, expression) is tolerable, anything visible is not
+    if any(CATALOG.get(key, 0) >= 2 for key in sample.defects):
         return False
     judged = False
     if sample.identity is not None:
@@ -138,7 +148,7 @@ def is_pass(sample: Sample, thresholds: dict[str, float] | None = None) -> bool:
 
 def is_fail(sample: Sample, thresholds: dict[str, float] | None = None) -> bool:
     thresholds = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
-    if sample.critical:
+    if is_critical(sample):
         return True
     return sample.identity is not None and sample.identity < thresholds["fail_identity"]
 
@@ -199,9 +209,15 @@ def cluster_bootstrap_interval(
     by_scenario: dict[str, list[list[float]]] = {}
     for (scenario, _seed), values in cell_map.items():
         by_scenario.setdefault(scenario, []).append(values)
+    return _two_level_bootstrap(by_scenario, n=n, seed=seed, alpha=alpha)
+
+
+def _two_level_bootstrap(
+    by_scenario: dict[str, list[list[float]]], *, n: int, seed: int, alpha: float
+) -> tuple[float, float]:
     scenario_names = sorted(by_scenario)
     if len(scenario_names) < 2:
-        flat = [mean(v) for v in cell_map.values()]
+        flat = [mean(v) for group in by_scenario.values() for v in group]
         return (percentile(flat, alpha / 2), percentile(flat, 1 - alpha / 2))
 
     rng = random.Random(seed)
@@ -215,6 +231,55 @@ def cluster_bootstrap_interval(
         draws.append(mean(per_draw))
 
     return (percentile(draws, alpha / 2), percentile(draws, 1 - alpha / 2))
+
+
+def paired_difference(
+    a: list[Sample],
+    b: list[Sample],
+    *,
+    weights: dict[str, float] | None = None,
+    n: int = 2000,
+    seed: int = 7,
+    alpha: float = 0.05,
+) -> dict | None:
+    """A minus B over the (scenario, seed) cells both have rendered.
+
+    The grid uses the same seeds for every LoRA, so cell-wise differences
+    cancel the seed and scenario difficulty that dominates unpaired means.
+    The interval comes from the same two-level bootstrap as the ranking.
+    """
+
+    def cell_means(samples: list[Sample]) -> dict[tuple[str, int], float]:
+        out: dict[tuple[str, int], list[float]] = {}
+        for sample in samples:
+            utility = image_utility(sample, weights)
+            if utility is not None:
+                out.setdefault((sample.scenario, sample.seed), []).append(utility)
+        return {key: mean(values) for key, values in out.items()}
+
+    left, right = cell_means(a), cell_means(b)
+    common = sorted(set(left) & set(right))
+    if not common:
+        return None
+
+    by_scenario: dict[str, list[list[float]]] = {}
+    for key in common:
+        by_scenario.setdefault(key[0], []).append([left[key] - right[key]])
+    per_scenario = {name: mean(v[0] for v in group) for name, group in by_scenario.items()}
+    low, high = _two_level_bootstrap(by_scenario, n=n, seed=seed, alpha=alpha)
+    diffs = [left[key] - right[key] for key in common]
+    return {
+        "pairs": len(common),
+        "scenarios": len(per_scenario),
+        "mean_diff": mean(per_scenario.values()),
+        "lcb": low,
+        "ucb": high,
+        "wins": sum(1 for d in diffs if d > 1e-9),
+        "losses": sum(1 for d in diffs if d < -1e-9),
+        "ties": sum(1 for d in diffs if abs(d) <= 1e-9),
+        "per_scenario": per_scenario,
+        "verdict": "a" if low > 0 else ("b" if high < 0 else "none"),
+    }
 
 
 def analyse_lora(

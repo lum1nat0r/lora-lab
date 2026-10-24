@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from ..config import ProjectConfig, load_project
 from ..db import Store
 from .routes_loras import router as loras_router
+from .routes_review import router as review_router
 from .routes_runs import router as runs_router
 from .routes_setup import router as setup_router
 from .state import AppState
@@ -33,6 +34,7 @@ def create_app(
     app.include_router(setup_router)
     app.include_router(loras_router)
     app.include_router(runs_router)
+    app.include_router(review_router)
 
     def store() -> Store:
         return Store(state.project.db_path)
@@ -49,6 +51,8 @@ def create_app(
                 db.image_count(),
                 db.score_count(),
                 db.score_max_created_at(),
+                # gold labels move the judge gate
+                db.label_count(),
             )
             cached = state.report_cache.get(run_id)
             if cached is not None and cached[0] == key:
@@ -91,17 +95,32 @@ def create_app(
         )
 
     @app.get("/report", response_class=HTMLResponse)
-    def report(request: Request, run: str | None = None) -> HTMLResponse:
+    def report(
+        request: Request,
+        run: str | None = None,
+        a: str | None = None,
+        b: str | None = None,
+        a_run: str | None = None,
+        b_run: str | None = None,
+    ) -> HTMLResponse:
         payload = report_payload(_run_id_from_name(state, run))
         db = store()
         try:
             runs = [dict(r) for r in db.runs()]
+            paired = _paired(db, payload, a, b, a_run, b_run) if a and b else None
         finally:
             db.close()
         return TEMPLATES.TemplateResponse(
             request,
             "report.html",
-            {"project": state.project, "payload": payload, "runs": runs, "selected": run},
+            {
+                "project": state.project,
+                "payload": payload,
+                "runs": runs,
+                "selected": run,
+                "paired": paired,
+                "pair_query": {"a": a, "b": b, "a_run": a_run, "b_run": b_run},
+            },
         )
 
     @app.get("/api/report")
@@ -245,6 +264,24 @@ def create_app(
         return FileResponse(target)
 
     return app
+
+
+def _paired(
+    db: Store, payload: dict, a: str, b: str, a_run: str | None, b_run: str | None
+) -> dict:
+    from ..analyze.report import gate_by_calibration, paired_report, samples_from_store
+
+    samples = {}
+    for side, name in (("a", a_run), ("b", b_run)):
+        run_id = None
+        if name:
+            row = db.run_by_name(name)
+            if row is None:
+                return {"error": f"Run '{name}' nicht gefunden"}
+            run_id = int(row["id"])
+        samples[side] = gate_by_calibration(samples_from_store(db, run_id), payload["calibration"])
+    result = paired_report(samples["a"], samples["b"], a, b, bootstrap=1000)
+    return result or {"error": f"{a} und {b} haben keine gemeinsamen Szenario/Seed-Zellen"}
 
 
 def _run_id_from_name(state: AppState, run: str | None) -> int | None:

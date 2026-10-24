@@ -420,7 +420,16 @@ def _embed_folder(
         for p in Path(directory).iterdir()
         if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
     )[:limit]
-    vectors: list[list[float]] = []
+    embedded, dirty = embed_files(files, embedder, cache)
+    return [embedding for _file, embedding in embedded], dirty
+
+
+def embed_files(
+    files: list[Path], embedder, cache: dict[str, list[float] | None]
+) -> tuple[list[tuple[Path, list[float]]], bool]:
+    """Embed files through a content-hash cache; files without a face are left out."""
+
+    out: list[tuple[Path, list[float]]] = []
     dirty = False
     for file in files:
         try:
@@ -434,8 +443,8 @@ def _embed_folder(
             cache[digest] = embedding
             dirty = True
         if embedding is not None:
-            vectors.append(embedding)
-    return vectors, dirty
+            out.append((file, embedding))
+    return out, dirty
 
 
 def build_references(

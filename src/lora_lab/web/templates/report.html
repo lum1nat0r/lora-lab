@@ -33,6 +33,19 @@
   {% endif %}
 </div>
 
+{% for kind, info in payload.calibration.items() %}
+  {% set label = 'Prompt-Judge' if kind == 'adherence' else 'Defekt-Judge' %}
+  {% if info.status == 'rejected' %}
+  <div class="flash err"><strong>{{ label }} verworfen:</strong> κ = {{ '%.2f'|format(info.kappa) }} gegenüber deinem Gold-Set.
+    Die Achse ist aus dem Ranking genommen. <a href="/label">Kalibrierung ansehen →</a></div>
+  {% elif info.status == 'weak' %}
+  <div class="flash"><strong>{{ label }} nur schwach kalibriert</strong> (κ = {{ '%.2f'|format(info.kappa) }}) – Ergebnisse mit Vorsicht lesen. <a href="/label">Mehr labeln →</a></div>
+  {% endif %}
+{% endfor %}
+{% if payload.calibration.adherence.status == 'uncalibrated' and payload.results and payload.results[0].axes.adherence is not none %}
+<p class="hint">Der Prompt-Judge ist noch nicht gegen menschliche Labels geprüft ({{ payload.calibration.adherence.n }} von {{ payload.calibration.adherence.needed }} Antworten). <a href="/label">Gold-Set labeln →</a></p>
+{% endif %}
+
 {% if not payload.results %}
   {% if payload.unscored %}
     <div class="flash">
@@ -83,6 +96,7 @@
            data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
            data-adherence-details="{{ img.adherence_details or '' }}"
            data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
+           data-defects="{{ img.defects|join(', ') }}"
            data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
            data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
         <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
@@ -123,6 +137,7 @@
           {{ r.subject }} · {{ r.scenarios }} Szenarien
           {% if r.diversity is not none %} · Diversität {{ '%.0f%%'|format(r.diversity * 100) }}{% endif %}
           {% if r.max_leakage is not none %} · max. Train-Ähnlichkeit {{ '%.0f%%'|format(r.max_leakage * 100) }}{% endif %}
+          {% if r.defect_rate is not none %} · <span class="{{ 'fail' if r.defect_rate > 0 else '' }}">Defekte {{ '%.0f%%'|format(r.defect_rate * 100) }}</span>{% endif %}
         </div>
       </td>
       <td class="num"><strong>{{ '%.0f%%'|format(r.mean * 100) }}</strong></td>
@@ -176,6 +191,7 @@
                data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
                data-adherence-details="{{ img.adherence_details or '' }}"
                data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
+           data-defects="{{ img.defects|join(', ') }}"
                data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
                data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
             <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
@@ -266,6 +282,51 @@
   </div>
   {% endif %}
 
+  <h2 id="paired-section">Gepaarter Vergleich <span class="muted" style="text-transform:none;letter-spacing:0">· A gegen B nur auf Szenario/Seed-Zellen, die beide gerendert haben – z. B. neuer Trainingslauf gegen alten</span></h2>
+  <form method="get" action="/report#paired-section" class="compare-toolbar">
+    <input type="hidden" name="run" value="{{ selected or '' }}">
+    <datalist id="op-list">{% for op in payload.operating_points %}<option value="{{ op }}">{% endfor %}</datalist>
+    <div class="group-meta" style="flex:1">
+      <label style="margin:0">A</label>
+      <input name="a" list="op-list" value="{{ pair_query.a or '' }}" placeholder="lora@ep20@s1" style="width:auto;flex:1">
+      <select name="a_run" class="select-sm">
+        <option value="">alle Runs</option>
+        {% for r in runs %}<option value="{{ r.name }}" {% if pair_query.a_run == r.name %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+      </select>
+      <label style="margin:0 0 0 10px">B</label>
+      <input name="b" list="op-list" value="{{ pair_query.b or '' }}" placeholder="lora@ep30@s1" style="width:auto;flex:1">
+      <select name="b_run" class="select-sm">
+        <option value="">alle Runs</option>
+        {% for r in runs %}<option value="{{ r.name }}" {% if pair_query.b_run == r.name %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-sm primary">Vergleichen</button>
+  </form>
+  {% if paired %}
+    {% if paired.error %}
+    <div class="flash err">{{ paired.error }}</div>
+    {% else %}
+    <div class="card">
+      <div class="winner-title" style="margin:0 0 8px">
+        {% if paired.verdict == 'a' %}<span class="ok">A ist besser</span>
+        {% elif paired.verdict == 'b' %}<span class="ok">B ist besser</span>
+        {% else %}<span class="muted">Kein belastbarer Unterschied</span>{% endif %}
+      </div>
+      <div class="winner-metrics">
+        <div><span class="muted">A − B:</span> <strong>{{ '%+.1f'|format(paired.mean_diff * 100) }} Punkte</strong>
+          <span class="muted">(95%: {{ '%+.1f'|format(paired.lcb * 100) }} bis {{ '%+.1f'|format(paired.ucb * 100) }})</span></div>
+        <div><span class="muted">Zellen A/B/gleich:</span> {{ paired.wins }} / {{ paired.losses }} / {{ paired.ties }}</div>
+        <div><span class="muted">Gepaart:</span> {{ paired.pairs }} Zellen in {{ paired.scenarios }} Szenarien</div>
+      </div>
+      <div class="actions">
+        {% for name, diff in paired.per_scenario|dictsort(by='value') %}
+        <span class="pill">{{ name }}: <strong class="{{ 'ok' if diff > 0 else ('fail' if diff < 0 else '') }}">{{ '%+.0f'|format(diff * 100) }}</strong></span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  {% endif %}
+
 {% endif %}
 
 {% if payload.compare %}
@@ -315,6 +376,7 @@
            data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
            data-adherence-details="{{ img.adherence_details or '' }}"
            data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
+           data-defects="{{ img.defects|join(', ') }}"
            data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
            data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else ('Grenzwertig' if img.utility is not none else 'Unbewertet')) }}">
         <img src="/images/{{ img.path }}" alt="{{ op }}" loading="lazy">
@@ -359,6 +421,7 @@
           <tr><th>Prompt (Adherence)</th><td id="im-adherence"></td></tr>
           <tr id="im-adherence-details-row" hidden><th>Prompt-Checkliste</th><td id="im-adherence-details"></td></tr>
           <tr><th>Qualität (Quality)</th><td id="im-quality"></td></tr>
+          <tr id="im-defects-row" hidden><th>Defekte (VLM)</th><td id="im-defects" class="err"></td></tr>
         </table>
         <div class="actions">
           <a id="im-open-btn" class="button primary" href="#" target="_blank">Vollbild in neuem Tab öffnen ↗</a>

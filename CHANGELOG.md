@@ -27,6 +27,11 @@ Git-Historie.
 
 ### Added
 
+- **Gold-Set & Judge-Kalibrierung:** Seite `/label` zum Labeln von Attributen und Defekten ohne Anzeige der VLM-Antwort. Die Übereinstimmung des Judges wird als Cohens κ gemessen (`lora-lab calibrate`, Report-Hinweis). Ab 30 Antworten fliegt ein Judge mit κ < 0,4 aus dem Ranking.
+- **Defekt-Judge:** `DefectScorer` fragt den VLM nach den bildlich prüfbaren Defekten aus dem Katalog (neue Achse `defects`). Kritische Defekte machen das Bild zum Ausfall, Schweregrad ≥ 2 verhindert einen Treffer. Das Ranking zeigt eine Defektrate, die Bildansicht listet die gefundenen Defekte. Kostet eine zweite VLM-Anfrage pro Bild.
+- **Blind-A/B-Abnahme:** Seite `/duel` vergleicht zwei anonyme Bilder mit gleichem Subjekt, Szenario und Seed aus den Top 6 des Rankings und stellt Paare mit den wenigsten Stimmen zuerst. Der Stand wird per Bradley-Terry mit Bootstrap-Intervall berechnet.
+- **Gepaarter Vergleich:** `lora-lab compare A B [--run-a --run-b]` und ein Abschnitt im Report berechnen die Differenz A − B nur über gemeinsame Szenario/Seed-Zellen, mit Konfidenzintervall. Damit lässt sich z. B. ein neuer Trainingslauf gegen den alten vergleichen.
+- `check-refs` findet zusätzlich Beinahe-Duplikate (gleiches Foto neu kodiert oder beschnitten) über ArcFace-Embeddings, sofern die ONNX-Modelle vorhanden sind.
 - Referenzen-Seite warnt, wenn der Ordner nicht beschreibbar ist.
 - `lora-lab doctor` prüft für jedes Subjekt den effektiven Referenzordner —
   auch den Default für Subjekte ohne `ref_dir` — und warnt, wenn Uploads

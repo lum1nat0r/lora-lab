@@ -1,0 +1,1 @@
+{"version": 1, "resolved_at": 1792862568.1523218, "model": "claude-opus-5-5", "currency": "USD", "pricing_source": "session_model:claude_code", "pricing_version": "pricing:6d0cb850f12c", "input_rate_usd_per_million": 4.0, "output_rate_usd_per_million": 20.0}

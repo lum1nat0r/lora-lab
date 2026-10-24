@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from ..db import Store
 from ..scorers.defects import pairwise_diversity
+from .agreement import calibration as judge_calibration
 from .stats import (
     AXES,
     LoraResult,
@@ -15,6 +17,7 @@ from .stats import (
     is_fail,
     is_pass,
     mean,
+    paired_difference,
     pareto_front,
     rank_stability,
 )
@@ -62,7 +65,8 @@ def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
             else None
         )
         raw_leak = id_meta.get("leakage")
-        raw_def = crit_meta.get("defect_index")
+        def_meta = _row_meta(row, "defects_meta")
+        raw_def = row["defects"] if row["defects"] is not None else crit_meta.get("defect_index")
         samples.append(
             Sample(
                 lora_id=str(row["lora_id"]) or f"{row['subject']}:base",
@@ -83,9 +87,47 @@ def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
                 leakage=float(raw_leak) if raw_leak is not None else None,
                 embedding=embedding,
                 defect_index=float(raw_def) if raw_def is not None else None,
+                defects=tuple(str(x) for x in (def_meta.get("detected") or ())),
             )
         )
     return samples
+
+
+def gate_by_calibration(samples: list[Sample], calibration: dict[str, dict]) -> list[Sample]:
+    """Drop the judge axes whose agreement with the gold set is at chance level."""
+
+    drop_adherence = calibration.get("adherence", {}).get("status") == "rejected"
+    drop_defects = calibration.get("defects", {}).get("status") == "rejected"
+    if not (drop_adherence or drop_defects):
+        return samples
+    out = []
+    for sample in samples:
+        changes: dict = {}
+        if drop_adherence:
+            changes["adherence"] = None
+        if drop_defects:
+            changes.update(defects=(), defect_index=None)
+        out.append(replace(sample, **changes))
+    return out
+
+
+def paired_report(
+    samples_a: list[Sample],
+    samples_b: list[Sample],
+    op_a: str,
+    op_b: str,
+    *,
+    bootstrap: int = 2000,
+) -> dict | None:
+    """Paired difference of two operating points (``lora@epN@sX``)."""
+
+    def pick(samples: list[Sample], op: str) -> list[Sample]:
+        return [s for s in samples if f"{s.lora_id}@ep{s.epoch}@s{s.strength:g}" == op]
+
+    result = paired_difference(pick(samples_a, op_a), pick(samples_b, op_b), n=bootstrap)
+    if result is not None:
+        result.update(a=op_a, b=op_b)
+    return result
 
 
 def operating_point(result: LoraResult) -> str:
@@ -158,7 +200,8 @@ def build_report(
     weights: dict[str, float] | None = None,
     stability_draws: int = 500,
 ) -> dict:
-    samples = samples_from_store(store, run_id)
+    calibration = judge_calibration(store)
+    samples = gate_by_calibration(samples_from_store(store, run_id), calibration)
     results = analyse_all(samples, weights=weights, bootstrap=bootstrap)
     keys = {operating_point(r): r for r in results}
     sums = {key: {axis: 0.0 for axis in AXES} for key in keys}
@@ -169,6 +212,7 @@ def build_report(
     compare_slots: dict[tuple[str, int], dict[str, dict]] = {}
     embeddings_by_op: dict[str, list[list[float]]] = {}
     leakages_by_op: dict[str, list[float]] = {}
+    defects_by_op: dict[str, list[bool]] = {}
     unscored: list[dict] = []
 
     for sample in samples:
@@ -197,6 +241,7 @@ def build_report(
             "critical": sample.critical,
             "leakage": sample.leakage,
             "defect_index": sample.defect_index,
+            "defects": list(sample.defects),
             "utility": utility,
             "passed": is_pass(sample) if utility is not None else False,
             "failed": is_fail(sample) if utility is not None else False,
@@ -205,6 +250,8 @@ def build_report(
             embeddings_by_op.setdefault(key, []).append(list(sample.embedding))
         if sample.leakage is not None:
             leakages_by_op.setdefault(key, []).append(sample.leakage)
+        if sample.defect_index is not None:
+            defects_by_op.setdefault(key, []).append(bool(sample.defects))
         if sample.path:
             compare_slots.setdefault((sample.scenario, sample.seed), {})[key] = item
         if utility is None:
@@ -306,6 +353,11 @@ def build_report(
                     if leakages_by_op.get(operating_point(r))
                     else None
                 ),
+                "defect_rate": (
+                    mean(1.0 if d else 0.0 for d in defects_by_op[operating_point(r)])
+                    if defects_by_op.get(operating_point(r))
+                    else None
+                ),
                 "axes": components.get(operating_point(r), {}),
                 "images": images_by_op.get(operating_point(r), []),
             }
@@ -313,6 +365,7 @@ def build_report(
         ],
         "rank_stability": ranks,
         "top_rank": top_rank,
+        "calibration": calibration,
     }
 
 
