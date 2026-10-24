@@ -12,15 +12,24 @@
     </p>
   </div>
   {% if runs %}
-  <form method="get" action="/report" class="run-filter">
-    <label for="run-select" style="margin:0">Run:</label>
-    <select id="run-select" name="run" class="select-sm" onchange="this.form.submit()">
-      <option value="" {% if not selected %}selected{% endif %}>Alle Runs ({{ payload.total_images }} Bilder)</option>
-      {% for r in runs %}
-      <option value="{{ r.name }}" {% if selected == r.name %}selected{% endif %}>{{ r.name }} ({{ r.profile }})</option>
-      {% endfor %}
-    </select>
-  </form>
+  <div class="run-filter">
+    <form method="get" action="/report" class="run-filter">
+      <label for="run-select" style="margin:0">Run:</label>
+      <select id="run-select" name="run" class="select-sm" onchange="this.form.submit()">
+        <option value="" {% if not selected %}selected{% endif %}>Alle Runs ({{ payload.total_images }} Bilder)</option>
+        {% for r in runs %}
+        <option value="{{ r.name }}" {% if selected == r.name %}selected{% endif %}>{{ r.name }} ({{ r.profile }})</option>
+        {% endfor %}
+      </select>
+    </form>
+    <form method="post" action="/report/delete-run"
+          onsubmit="return confirm('{% if selected %}Run \x27{{ selected }}\x27 inklusive aller generierten Bilder endgültig von der Festplatte löschen?{% else %}ALLE Runs und generierten Bilder endgültig von der Festplatte löschen?{% endif %}')">
+      <input type="hidden" name="run" value="{{ selected or '' }}">
+      <button type="submit" class="danger btn-sm">
+        {% if selected %}Run löschen{% else %}Alle löschen{% endif %}
+      </button>
+    </form>
+  </div>
   {% endif %}
 </div>
 
@@ -121,9 +130,19 @@
         {% if r.stability is not none %}<span class="hint">· ±{{ '%.0f%%'|format((1 - r.stability) * 50) }}</span>{% endif %}
       </td>
       <td>
-        <button type="button" class="btn-sm" onclick="toggleOpGallery('gal-{{ loop.index }}')">
-          {{ r.images|length }} Bilder ▾
-        </button>
+        <div class="group-actions">
+          <button type="button" class="btn-sm" onclick="toggleOpGallery('gal-{{ loop.index }}')">
+            {{ r.images|length }} Bilder ▾
+          </button>
+          <form method="post" action="/report/delete-lora" style="margin:0"
+                onsubmit="return confirm('Generierte Bilder und Ergebnisse für {{ r.lora_id }} (ep{{ r.epoch }}, s{{ '%g'|format(r.strength) }}) von der Festplatte löschen?')">
+            <input type="hidden" name="lora_id" value="{{ r.lora_id }}">
+            <input type="hidden" name="epoch" value="{{ r.epoch }}">
+            <input type="hidden" name="strength" value="{{ r.strength }}">
+            <input type="hidden" name="run" value="{{ selected or '' }}">
+            <button type="submit" class="danger btn-sm" title="Bilder &amp; DB-Einträge dieser LoRA-Einstellung löschen">Löschen</button>
+          </form>
+        </div>
       </td>
     </tr>
     <tr id="gal-{{ loop.index }}" class="gallery-row" hidden>

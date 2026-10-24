@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -100,6 +101,77 @@ def create_app(
             return build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
         finally:
             db.close()
+
+    @app.post("/report/delete-lora")
+    async def report_delete_lora(request: Request) -> RedirectResponse:
+        if state.runner.running():
+            return RedirectResponse(
+                "/report?" + urlencode({"err": "Lauf aktiv – bitte erst stoppen"}),
+                status_code=303,
+            )
+        form = await request.form()
+        lora_id = str(form.get("lora_id", "")).strip()
+        run_name = str(form.get("run", "")).strip() or None
+        raw_epoch = str(form.get("epoch", "")).strip()
+        raw_strength = str(form.get("strength", "")).strip()
+        epoch = int(raw_epoch) if raw_epoch else None
+        strength = float(raw_strength) if raw_strength else None
+
+        if not lora_id:
+            return RedirectResponse("/report?" + urlencode({"err": "lora_id fehlt"}), status_code=303)
+
+        query_id = "" if lora_id.endswith(":base") else lora_id
+        db = store()
+        try:
+            run_id = None
+            if run_name:
+                row = db.run_by_name(run_name)
+                run_id = int(row["id"]) if row else None
+            stats = db.delete_lora(
+                state.project.data_dir,
+                query_id,
+                epoch=epoch,
+                strength=strength,
+                run_id=run_id,
+            )
+        finally:
+            db.close()
+
+        params: dict[str, str] = {
+            "ok": f"{lora_id} gelöscht ({stats['files']} Bilder, {stats['jobs']} Jobs entfernt)"
+        }
+        if run_name:
+            params["run"] = run_name
+        return RedirectResponse("/report?" + urlencode(params), status_code=303)
+
+    @app.post("/report/delete-run")
+    async def report_delete_run(request: Request) -> RedirectResponse:
+        if state.runner.running():
+            return RedirectResponse(
+                "/report?" + urlencode({"err": "Lauf aktiv – bitte erst stoppen"}),
+                status_code=303,
+            )
+        form = await request.form()
+        run_name = str(form.get("run", "")).strip() or None
+
+        db = store()
+        try:
+            run_id = None
+            if run_name:
+                row = db.run_by_name(run_name)
+                if not row:
+                    return RedirectResponse(
+                        "/report?" + urlencode({"err": f"Run '{run_name}' nicht gefunden"}),
+                        status_code=303,
+                    )
+                run_id = int(row["id"])
+            stats = db.delete_run(state.project.data_dir, run_id=run_id)
+        finally:
+            db.close()
+
+        label = f"Run '{run_name}'" if run_name else "Alle Runs"
+        params = {"ok": f"{label} gelöscht ({stats['files']} Bilder, {stats['jobs']} Jobs entfernt)"}
+        return RedirectResponse("/report?" + urlencode(params), status_code=303)
 
     @app.get("/api/summary")
     def summary() -> dict[str, object]:

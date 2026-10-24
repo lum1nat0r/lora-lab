@@ -307,3 +307,82 @@ class Store:
 
     def runs(self) -> Iterable[sqlite3.Row]:
         return self.conn.execute("SELECT * FROM runs ORDER BY id DESC")
+
+    # -- cleanup -----------------------------------------------------------
+    def _unlink_image_paths(self, data_dir: Path, paths: list[str]) -> int:
+        root = (Path(data_dir) / "images").resolve()
+        removed = 0
+        for rel in paths:
+            if not rel:
+                continue
+            target = (Path(data_dir) / rel).resolve()
+            if not str(target).startswith(str(root) + "/") or not target.is_file():
+                continue
+            try:
+                target.unlink()
+                removed += 1
+            except OSError:
+                continue
+            parent = target.parent
+            while parent != root and parent.is_dir():
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
+        return removed
+
+    def delete_lora(
+        self,
+        data_dir: Path,
+        lora_id: str,
+        *,
+        epoch: int | None = None,
+        strength: float | None = None,
+        run_id: int | None = None,
+    ) -> dict[str, int]:
+        clauses = ["jobs.lora_id = ?"]
+        params: list[Any] = [lora_id]
+        if epoch is not None:
+            clauses.append("jobs.epoch = ?")
+            params.append(epoch)
+        if strength is not None:
+            clauses.append("jobs.strength = ?")
+            params.append(strength)
+        if run_id is not None:
+            clauses.append("jobs.run_id = ?")
+            params.append(run_id)
+        where = " AND ".join(clauses)
+
+        rows = self.conn.execute(
+            f"SELECT images.path FROM images JOIN jobs ON jobs.id = images.job_id WHERE {where}",
+            params,
+        ).fetchall()
+        files = self._unlink_image_paths(data_dir, [str(r["path"]) for r in rows])
+
+        cur = self.conn.execute(f"DELETE FROM jobs WHERE {where}", params)
+        jobs_deleted = cur.rowcount
+        self.conn.execute("DELETE FROM runs WHERE id NOT IN (SELECT DISTINCT run_id FROM jobs)")
+        self.conn.commit()
+        return {"jobs": jobs_deleted, "files": files}
+
+    def delete_run(self, data_dir: Path, run_id: int | None = None) -> dict[str, int]:
+        if run_id is None:
+            rows = self.conn.execute("SELECT path FROM images").fetchall()
+            files = self._unlink_image_paths(data_dir, [str(r["path"]) for r in rows])
+            cur = self.conn.execute("DELETE FROM jobs")
+            jobs_deleted = cur.rowcount
+            self.conn.execute("DELETE FROM runs")
+            self.conn.commit()
+            return {"jobs": jobs_deleted, "files": files}
+
+        rows = self.conn.execute(
+            "SELECT images.path FROM images JOIN jobs ON jobs.id = images.job_id WHERE jobs.run_id = ?",
+            (run_id,),
+        ).fetchall()
+        files = self._unlink_image_paths(data_dir, [str(r["path"]) for r in rows])
+        cur = self.conn.execute("DELETE FROM jobs WHERE run_id = ?", (run_id,))
+        jobs_deleted = cur.rowcount
+        self.conn.execute("DELETE FROM runs WHERE id = ?", (run_id,))
+        self.conn.commit()
+        return {"jobs": jobs_deleted, "files": files}

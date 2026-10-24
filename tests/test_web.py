@@ -63,3 +63,27 @@ def test_dashboard_and_report_render(root: Path, tmp_path: Path) -> None:
     assert len(api["results"][0]["images"]) == 2
     assert api["results"][0]["axes"]["quality"] is not None
     assert len(api["compare"]) == 2
+
+    # Delete a single LoRA operating point and verify files + DB records are gone
+    res = client.post(
+        "/report/delete-lora",
+        data={"lora_id": "lora_a", "epoch": "20", "strength": "1.0", "run": ""},
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    api_after_lora = client.get("/api/report").json()
+    assert api_after_lora["samples"] == 2
+    assert [r["lora_id"] for r in api_after_lora["results"]] == ["lora_b"]
+    assert not any((project.data_dir / "images").rglob("*lora_a*"))
+
+    # Delete the entire run and verify everything is cleaned up
+    res_run = client.post(
+        "/report/delete-run",
+        data={"run": "smoke"},
+        follow_redirects=False,
+    )
+    assert res_run.status_code == 303
+    api_empty = client.get("/api/report").json()
+    assert api_empty["samples"] == 0
+    assert api_empty["results"] == []
+    assert list((project.data_dir / "images").rglob("*.png")) == []
