@@ -60,9 +60,33 @@ def loras_page(request: Request) -> HTMLResponse:
     selected = {lora.id for lora in project.grid.loras}
     subjects = sorted(project.subjects)
     grouped: dict[str, list[dict]] = {}
-    for item in items:
+    by_folder: dict[str, list[dict]] = {}
+    for index, item in enumerate(items):
+        rel = str(item.get("file") or "")
+        parts = [p for p in rel.split("/") if p]
+        folder = "/".join(parts[:-1]) if len(parts) > 1 else "(root)"
+        family = parts[0] if len(parts) > 1 else "(root)"
+        item["index"] = index
+        item["folder"] = folder
+        item["family"] = family
+        item["filename"] = parts[-1] if parts else rel
         item["selected"] = item.get("id") in selected
         grouped.setdefault(str(item.get("subject") or "?"), []).append(item)
+        by_folder.setdefault(folder, []).append(item)
+
+    groups = []
+    for folder, group_items in sorted(by_folder.items()):
+        groups.append(
+            {
+                "folder": folder,
+                "family": group_items[0]["family"],
+                "subject": group_items[0].get("subject") or (subjects[0] if subjects else ""),
+                "rank": next((it.get("rank") for it in group_items if it.get("rank")), None),
+                "selected_count": sum(1 for it in group_items if it["selected"]),
+                "entries": group_items,
+            }
+        )
+    families = sorted({g["family"] for g in groups})
 
     from ..grid import expand
 
@@ -78,6 +102,8 @@ def loras_page(request: Request) -> HTMLResponse:
             "project": project,
             "items": items,
             "grouped": sorted(grouped.items()),
+            "groups": groups,
+            "families": families,
             "subjects": subjects,
             "selected_count": len(selected),
             "jobs": jobs,
@@ -91,7 +117,8 @@ def loras_page(request: Request) -> HTMLResponse:
 async def loras_scan(request: Request) -> RedirectResponse:
     state = _state(request)
     form = await request.form()
-    path = Path(str(form.get("path", "")).strip() or "/models/loras")
+    default_root = Path(os.environ.get("LORA_LAB_LORA_ROOT", "/models/loras"))
+    path = Path(str(form.get("path", "")).strip() or default_root)
     if not path.is_dir():
         return _flash("/loras", err=f"not a directory: {path}")
 
@@ -100,6 +127,7 @@ async def loras_scan(request: Request) -> RedirectResponse:
         path,
         subjects=list(state.project.subjects),
         skipped=skipped,
+        base_root=default_root,
     )
     if not found:
         return _flash(

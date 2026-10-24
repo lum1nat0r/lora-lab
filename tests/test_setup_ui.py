@@ -233,6 +233,9 @@ def test_lora_selection_and_grid(web) -> None:
     page = client.get("/loras")
     assert page.status_code == 200
     assert "a_ep10" in page.text
+    assert 'data-folder="a"' in page.text
+    assert 'data-family="b"' in page.text
+    assert "selectGroupFinal" in page.text
 
     response = client.post(
         "/loras/save",

@@ -92,6 +92,7 @@ def discover_loras(
     subjects: list[str] | None = None,
     include_unknown: bool = False,
     skipped: list[str] | None = None,
+    base_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Walk a ComfyUI ``models/loras`` tree and describe the relevant LoRAs.
 
@@ -104,11 +105,22 @@ def discover_loras(
     if not lora_root.is_dir():
         raise NotADirectoryError(lora_root)
 
+    rel_root = lora_root
+    if base_root is not None:
+        try:
+            resolved_base = Path(base_root).resolve()
+            if lora_root.resolve().is_relative_to(resolved_base):
+                rel_root = Path(base_root)
+        except OSError:
+            pass
+
     known = set(subjects or [])
     out: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
     for file in sorted(lora_root.rglob("*.safetensors")):
         if file.name.startswith("."):
             continue
+        rel_file = file.resolve().relative_to(rel_root.resolve()).as_posix()
         epoch = epoch_from_filename(file)
         try:
             meta = read_metadata(file)
@@ -123,17 +135,20 @@ def discover_loras(
             subject = slug(trigger) if trigger else slug(file.parent.name)
         else:
             if skipped is not None:
-                skipped.append(file.relative_to(lora_root).as_posix())
+                skipped.append(rel_file)
             continue
 
         stem = re.sub(r"-\d{6}(-state)?$", "", file.stem)
         lora_id = f"{slug(stem)}_ep{epoch}" if epoch else slug(stem)
+        if lora_id in seen_ids:
+            lora_id = f"{slug(file.parent.name)}_{lora_id}"
+        seen_ids.add(lora_id)
 
         out.append(
             {
                 "id": lora_id,
                 "subject": subject,
-                "file": file.relative_to(lora_root).as_posix(),
+                "file": rel_file,
                 "epoch": epoch or 0,
                 "rank": _int(meta.get("ss_network_dim")),
                 "learning_rate": _float(meta.get("ss_learning_rate") or meta.get("ss_unet_lr")),

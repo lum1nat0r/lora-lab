@@ -55,6 +55,9 @@ def test_discover_loras_matches_subject_and_epoch(tmp_path: Path) -> None:
     assert by_id["lisalule_ep66"]["epoch"] == 66
     assert by_id["mystery"]["subject"] == "other"
 
+    sub_loras = discover_loras(root / "moss", subjects=["lisalule"], base_root=root)
+    assert sub_loras[0]["file"] == "moss/lisalu.le/lisalule-000066.safetensors"
+
 
 def test_loras_file_is_merged(tmp_path: Path, root: Path) -> None:
     import shutil

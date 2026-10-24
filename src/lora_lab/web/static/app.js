@@ -73,8 +73,131 @@ function useBrowserPath() {
 
 // -- LoRA selection -------------------------------------------------------
 
+let activeFamily = "";
+
+function updateLoraCounts() {
+  const total = document.querySelectorAll("input[data-pick]:checked").length;
+  const counter = document.getElementById("selected-count");
+  if (counter) counter.textContent = String(total);
+
+  document.querySelectorAll(".lora-group").forEach((group) => {
+    const count = group.querySelectorAll("input[data-pick]:checked").length;
+    const badge = group.querySelector("[data-group-count]");
+    if (badge) {
+      badge.textContent = `${count} gewählt`;
+      badge.classList.toggle("ok", count > 0);
+    }
+  });
+}
+
 function toggleAll(checked) {
-  document.querySelectorAll("input[data-pick]").forEach((box) => { box.checked = checked; });
+  document.querySelectorAll("input[data-pick]").forEach((box) => {
+    const group = box.closest(".lora-group");
+    if (!group || !group.hidden) box.checked = checked;
+  });
+  updateLoraCounts();
+}
+
+function toggleGroup(el, checked) {
+  const group = el.closest(".lora-group");
+  if (!group) return;
+  group.querySelectorAll("input[data-pick]").forEach((box) => { box.checked = checked; });
+  if (checked) group.open = true;
+  updateLoraCounts();
+}
+
+function _finalRowInGroup(group) {
+  const rows = Array.from(group.querySelectorAll("tr[data-epoch]"));
+  if (!rows.length) return null;
+  const finalRow = rows.find((r) => parseInt(r.dataset.epoch || "0", 10) === 0);
+  if (finalRow) return finalRow;
+  return rows.reduce((best, r) => (
+    parseInt(r.dataset.epoch || "0", 10) >= parseInt(best.dataset.epoch || "0", 10) ? r : best
+  ), rows[0]);
+}
+
+function selectGroupFinal(el) {
+  const group = el.closest(".lora-group");
+  if (!group) return;
+  group.querySelectorAll("input[data-pick]").forEach((box) => { box.checked = false; });
+  const row = _finalRowInGroup(group);
+  if (row) {
+    const box = row.querySelector("input[data-pick]");
+    if (box) box.checked = true;
+  }
+  group.open = true;
+  updateLoraCounts();
+}
+
+function selectFinalPerGroup() {
+  document.querySelectorAll("input[data-pick]").forEach((box) => { box.checked = false; });
+  document.querySelectorAll(".lora-group").forEach((group) => {
+    if (group.hidden) return;
+    const row = _finalRowInGroup(group);
+    if (row) {
+      const box = row.querySelector("input[data-pick]");
+      if (box) box.checked = true;
+    }
+  });
+  updateLoraCounts();
+}
+
+function selectGroupStep(el, step) {
+  const group = el.closest(".lora-group");
+  if (!group) return;
+  const rows = Array.from(group.querySelectorAll("tr[data-epoch]"));
+  rows.forEach((row, idx) => {
+    const box = row.querySelector("input[data-pick]");
+    if (box) box.checked = ((idx + 1) % step === 0) || (idx === rows.length - 1);
+  });
+  group.open = true;
+  updateLoraCounts();
+}
+
+function setGroupSubject(el, subject) {
+  const group = el.closest(".lora-group");
+  if (!group) return;
+  group.querySelectorAll("select[data-subject-select]").forEach((sel) => {
+    sel.value = subject;
+    const row = sel.closest("tr");
+    if (row) row.dataset.subject = subject;
+  });
+}
+
+function toggleGroupsOpen(open) {
+  document.querySelectorAll(".lora-group").forEach((group) => {
+    if (!group.hidden) group.open = open;
+  });
+}
+
+function setFamilyFilter(btn, family) {
+  activeFamily = family;
+  document.querySelectorAll(".filter-pill").forEach((pill) => {
+    pill.classList.toggle("active", pill === btn);
+  });
+  filterLoras();
+}
+
+function filterLoras() {
+  const query = (document.getElementById("lora-search")?.value || "").trim().toLowerCase();
+  const onlySelected = Boolean(document.getElementById("lora-only-selected")?.checked);
+
+  document.querySelectorAll(".lora-group").forEach((group) => {
+    const familyMatch = !activeFamily || group.dataset.family === activeFamily;
+    const folderMatch = !query || (group.dataset.folder || "").includes(query);
+    let visibleRows = 0;
+
+    group.querySelectorAll("tr[data-epoch]").forEach((row) => {
+      const checked = Boolean(row.querySelector("input[data-pick]")?.checked);
+      const searchMatch = folderMatch || !query || (row.dataset.search || "").includes(query);
+      const show = familyMatch && searchMatch && (!onlySelected || checked);
+      row.hidden = !show;
+      if (show) visibleRows += 1;
+    });
+
+    group.hidden = visibleRows === 0;
+    if ((query || onlySelected) && visibleRows > 0) group.open = true;
+  });
 }
 
 function selectLatestPerSubject() {
@@ -89,6 +212,7 @@ function selectLatestPerSubject() {
     const box = row.querySelector("input[data-pick]");
     if (box) box.checked = true;
   });
+  updateLoraCounts();
 }
 
 // -- run polling ----------------------------------------------------------

@@ -3,7 +3,8 @@
 {% block content %}
 <h2>LoRAs auswählen</h2>
 <p class="muted">
-  {{ selected_count }} gewählt · {{ items | length }} bekannt ·
+  <strong id="selected-count">{{ selected_count }}</strong> gewählt ·
+  {{ items | length }} Dateien in {{ groups | length }} Ordnern ·
   Grid ergibt aktuell <strong>{{ jobs }}</strong> Bilder
   (≈ {{ estimate_minutes }} min bei 15 s/Bild).
 </p>
@@ -14,41 +15,96 @@
     <input name="path" value="{{ scan_path }}">
     <button class="button" type="submit">Scannen</button>
   </div>
-  <div class="hint">Es werden nur LoRAs übernommen, deren Trigger oder Pfad zu einem Subjekt passt.</div>
+  <div class="hint">Es werden nur LoRAs übernommen, deren Trigger oder Pfad zu einem Subjekt passt (Pfade relativ zu {{ scan_path }}).</div>
 </form>
 
 {% if items %}
 <form method="post" action="/loras/save">
-  <div class="actions">
-    <button type="button" class="button" onclick="toggleAll(true)">Alle</button>
-    <button type="button" class="button" onclick="toggleAll(false)">Keine</button>
-    <button type="button" class="button" onclick="selectLatestPerSubject()">Neueste Epoche je Subjekt</button>
+  <div class="lora-toolbar">
+    <div class="row">
+      <input id="lora-search" type="search" placeholder="Ordner oder Datei filtern (z. B. moss, less-face)…" oninput="filterLoras()">
+      <div class="actions" style="margin-top:0">
+        <label class="inline-check">
+          <input id="lora-only-selected" type="checkbox" onchange="filterLoras()">
+          Nur Ausgewählte zeigen
+        </label>
+        <button type="button" class="btn-sm" onclick="toggleGroupsOpen(true)">Alle aufklappen</button>
+        <button type="button" class="btn-sm" onclick="toggleGroupsOpen(false)">Alle zuklappen</button>
+      </div>
+    </div>
+
+    {% if families | length > 1 %}
+    <div class="actions" style="margin-top:10px">
+      <span class="muted" style="font-size:12px">Familie:</span>
+      <button type="button" class="pill filter-pill active" data-family="" onclick="setFamilyFilter(this, '')">Alle</button>
+      {% for fam in families %}
+      <button type="button" class="pill filter-pill" data-family="{{ fam }}" onclick="setFamilyFilter(this, '{{ fam }}')">{{ fam }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="actions" style="margin-top:10px">
+      <span class="muted" style="font-size:12px">Global:</span>
+      <button type="button" class="btn-sm" onclick="selectFinalPerGroup()">Finale / Letzte je Ordner</button>
+      <button type="button" class="btn-sm" onclick="selectLatestPerSubject()">Neueste Epoche je Subjekt</button>
+      <button type="button" class="btn-sm" onclick="toggleAll(true)">Alle</button>
+      <button type="button" class="btn-sm" onclick="toggleAll(false)">Keine</button>
+    </div>
   </div>
 
-  <table>
-    <tr><th></th><th>ID</th><th>Datei</th><th>Epoche</th><th>Subjekt</th><th>Info</th></tr>
-    {% for item in items %}
-    {% set index = loop.index0 %}
-    <tr data-subject="{{ item.subject }}" data-epoch="{{ item.epoch or 0 }}">
-      <td><input type="checkbox" data-pick name="pick_{{ index }}"
-                 {% if item.selected %}checked{% endif %}></td>
-      <td><code>{{ item.id }}</code></td>
-      <td class="muted">{{ item.file }}</td>
-      <td><input name="epoch_{{ index }}" value="{{ item.epoch or 0 }}" style="width:85px"></td>
-      <td>
-        <select name="subject_{{ index }}">
+  {% for group in groups %}
+  <details class="lora-group" data-family="{{ group.family }}" data-folder="{{ group.folder | lower }}"
+           {% if group.selected_count > 0 or groups | length <= 2 %}open{% endif %}>
+    <summary class="lora-group-head">
+      <div class="group-meta">
+        <strong class="group-title">{{ group.folder }}</strong>
+        <span class="pill">{{ group.entries | length }} Dateien</span>
+        <span class="pill {% if group.selected_count %}ok{% endif %}" data-group-count>{{ group.selected_count }} gewählt</span>
+        {% if group.rank %}<span class="pill">rank {{ group.rank }}</span>{% endif %}
+      </div>
+      <div class="group-actions" onclick="event.stopPropagation()">
+        <button type="button" class="btn-sm" onclick="selectGroupFinal(this)" title="Nur Finale / letzte Epoche in diesem Ordner">Finale / Letzte</button>
+        <button type="button" class="btn-sm" onclick="selectGroupStep(this, 2)" title="Jede 2. Epoche in diesem Ordner">Jede 2.</button>
+        <button type="button" class="btn-sm" onclick="selectGroupStep(this, 5)" title="Jede 5. Epoche in diesem Ordner">Jede 5.</button>
+        <button type="button" class="btn-sm" onclick="toggleGroup(this, true)">Alle</button>
+        <button type="button" class="btn-sm" onclick="toggleGroup(this, false)">Keine</button>
+        <select class="select-sm" title="Subjekt für ganzen Ordner setzen" onchange="setGroupSubject(this, this.value)">
           {% for subject in subjects %}
-          <option value="{{ subject }}" {% if item.subject == subject %}selected{% endif %}>{{ subject }}</option>
+          <option value="{{ subject }}" {% if group.subject == subject %}selected{% endif %}>{{ subject }}</option>
           {% endfor %}
         </select>
-      </td>
-      <td class="muted">
-        {% if item.rank %}rank {{ item.rank }}{% endif %}
-        {% if item.size_mb %} · {{ item.size_mb }} MB{% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+      </div>
+    </summary>
+
+    <table>
+      <tr><th></th><th>ID</th><th>Datei</th><th>Epoche</th><th>Subjekt</th><th>Info</th></tr>
+      {% for item in group.entries %}
+      {% set index = item.index %}
+      <tr data-subject="{{ item.subject }}" data-epoch="{{ item.epoch or 0 }}" data-search="{{ (item.id ~ ' ' ~ item.file) | lower }}">
+        <td><input type="checkbox" data-pick name="pick_{{ index }}" onchange="updateLoraCounts()"
+                   {% if item.selected %}checked{% endif %}></td>
+        <td><code>{{ item.id }}</code></td>
+        <td class="muted" title="{{ item.file }}">
+          {{ item.filename }}
+          {% if not item.epoch %}<span class="pill">final</span>{% endif %}
+        </td>
+        <td><input name="epoch_{{ index }}" value="{{ item.epoch or 0 }}" style="width:85px"></td>
+        <td>
+          <select name="subject_{{ index }}" data-subject-select onchange="this.closest('tr').dataset.subject = this.value">
+            {% for subject in subjects %}
+            <option value="{{ subject }}" {% if item.subject == subject %}selected{% endif %}>{{ subject }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td class="muted">
+          {% if item.rank %}rank {{ item.rank }}{% endif %}
+          {% if item.size_mb %} · {{ item.size_mb }} MB{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endfor %}
 
   <div class="actions">
     <button class="primary" type="submit">Auswahl speichern</button>
