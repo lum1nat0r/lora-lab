@@ -23,6 +23,7 @@ from .store import (
     resolve_ref_dir,
     safe_child,
     save_grid,
+    save_project_settings,
     save_scenarios,
     save_subjects,
     writable_dir,
@@ -519,6 +520,10 @@ async def grid_save(request: Request) -> RedirectResponse:
         scenarios = [str(x) for x in form.getlist("scenarios")]
         if not scenarios:
             raise ConfigError("select at least one scenario")
+        extra_conditions = [
+            str(x) for x in form.getlist("conditions") if x in ("base_only", "no_trigger")
+        ]
+        conditions = ["lora", *extra_conditions]
         name = str(form.get("name", "")).strip() or grid.name
         profile = str(form.get("profile", grid.profile))
         if profile not in grid.profiles and profile != grid.profile:
@@ -530,6 +535,7 @@ async def grid_save(request: Request) -> RedirectResponse:
                 "strengths": strengths,
                 "seeds": seeds,
                 "scenarios": scenarios,
+                "conditions": conditions,
                 "profile": profile,
                 "negative_prompt": str(form.get("negative_prompt", grid.negative_prompt)),
                 "width": int(str(form.get("width", grid.width))),
@@ -542,3 +548,60 @@ async def grid_save(request: Request) -> RedirectResponse:
     except (ConfigError, ValueError) as exc:
         return _flash("/setup/grid", err=str(exc))
     return _flash("/setup/grid", ok="grid saved")
+
+
+# -- vlm settings -----------------------------------------------------------
+
+
+@router.post("/setup/vlm/save")
+async def vlm_save(request: Request) -> RedirectResponse:
+    state = _state(request)
+    form = await request.form()
+    vlm_url = str(form.get("vlm_url", "")).strip() or None
+    vlm_model = str(form.get("vlm_model", "")).strip() or None
+    vlm_api_key = str(form.get("vlm_api_key", "")).strip() or None
+    save_project_settings(
+        state.root,
+        vlm_url=vlm_url,
+        vlm_model=vlm_model,
+        vlm_api_key=vlm_api_key,
+    )
+    state.reload()
+    return _flash("/setup", ok="VLM-Einstellungen gespeichert")
+
+
+@router.post("/setup/vlm/test")
+async def vlm_test(request: Request) -> RedirectResponse:
+    from ..scorers.vlm import VLMJudge, VLMSettings
+
+    state = _state(request)
+    form = await request.form()
+    vlm_url = str(form.get("vlm_url", "")).strip() or state.project.vlm_url or ""
+    vlm_model = str(form.get("vlm_model", "")).strip() or state.project.vlm_model or ""
+    vlm_api_key = str(form.get("vlm_api_key", "")).strip() or state.project.vlm_api_key or None
+
+    if not vlm_url or not vlm_model:
+        return _flash("/setup", err="VLM-Test: Bitte URL und Modellname eintragen.")
+
+    save_project_settings(
+        state.root,
+        vlm_url=vlm_url,
+        vlm_model=vlm_model,
+        vlm_api_key=vlm_api_key,
+    )
+    state.reload()
+
+    with VLMJudge(
+        VLMSettings(base_url=vlm_url, model=vlm_model, api_key=vlm_api_key, timeout=10.0)
+    ) as judge:
+        result = judge.ping()
+
+    if not result["ok"]:
+        return _flash("/setup", err=f"VLM nicht erreichbar ({vlm_url}): {result['error']}")
+    if not result["matched"]:
+        available = ", ".join(result["models"][:8]) or "keine"
+        return _flash(
+            "/setup",
+            err=f"VLM erreichbar, aber Modell '{vlm_model}' nicht gefunden (verfügbar: {available})",
+        )
+    return _flash("/setup", ok=f"VLM-Verbindung OK: {vlm_model} unter {vlm_url} antwortet.")

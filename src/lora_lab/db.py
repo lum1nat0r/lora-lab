@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS runs (
 
 CREATE TABLE IF NOT EXISTS jobs (
     id          INTEGER PRIMARY KEY,
-    job_hash    TEXT UNIQUE NOT NULL,
+    job_hash    TEXT NOT NULL,
     run_id      INTEGER NOT NULL REFERENCES runs(id),
     subject   TEXT NOT NULL,
     lora_id     TEXT NOT NULL,
@@ -40,10 +40,12 @@ CREATE TABLE IF NOT EXISTS jobs (
     error       TEXT,
     prompt_json TEXT,
     created_at  REAL NOT NULL,
-    updated_at  REAL NOT NULL
+    updated_at  REAL NOT NULL,
+    UNIQUE(run_id, job_hash)
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_run ON jobs(run_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_hash ON jobs(job_hash);
 
 CREATE TABLE IF NOT EXISTS images (
     id          INTEGER PRIMARY KEY,
@@ -89,7 +91,50 @@ class Store:
         self.conn = sqlite3.connect(self.path, timeout=30.0)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self._migrate_jobs_unique()
         self.conn.commit()
+
+    def _migrate_jobs_unique(self) -> None:
+        row = self.conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='jobs'"
+        ).fetchone()
+        if not row or "UNIQUE(run_id, job_hash)" in str(row["sql"]):
+            return
+        self.conn.executescript(
+            """
+            PRAGMA foreign_keys=OFF;
+            DROP VIEW IF EXISTS run_progress;
+            CREATE TABLE jobs_new (
+                id          INTEGER PRIMARY KEY,
+                job_hash    TEXT NOT NULL,
+                run_id      INTEGER NOT NULL REFERENCES runs(id),
+                subject     TEXT NOT NULL,
+                lora_id     TEXT NOT NULL,
+                epoch       INTEGER NOT NULL,
+                strength    REAL NOT NULL,
+                scenario    TEXT NOT NULL,
+                seed        INTEGER NOT NULL,
+                condition   TEXT NOT NULL,
+                profile     TEXT NOT NULL,
+                status      TEXT NOT NULL DEFAULT 'pending',
+                prompt_id   TEXT,
+                error       TEXT,
+                prompt_json TEXT,
+                created_at  REAL NOT NULL,
+                updated_at  REAL NOT NULL,
+                UNIQUE(run_id, job_hash)
+            );
+            INSERT INTO jobs_new SELECT * FROM jobs;
+            DROP TABLE jobs;
+            ALTER TABLE jobs_new RENAME TO jobs;
+            CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+            CREATE INDEX IF NOT EXISTS idx_jobs_run ON jobs(run_id);
+            CREATE INDEX IF NOT EXISTS idx_jobs_hash ON jobs(job_hash);
+            CREATE VIEW IF NOT EXISTS run_progress AS
+            SELECT run_id, status, COUNT(*) AS n FROM jobs GROUP BY run_id, status;
+            PRAGMA foreign_keys=ON;
+            """
+        )
 
     def close(self) -> None:
         self.conn.close()
@@ -145,16 +190,83 @@ class Store:
         self.conn.commit()
         if cur.rowcount == 0:
             row = self.conn.execute(
-                "SELECT id FROM jobs WHERE job_hash = ?", (job_hash,)
+                "SELECT id FROM jobs WHERE run_id = ? AND job_hash = ?", (run_id, job_hash)
             ).fetchone()
             return int(row["id"])
         return int(cur.lastrowid)
 
-    def job_status(self, job_hash: str) -> str | None:
-        row = self.conn.execute(
-            "SELECT status FROM jobs WHERE job_hash = ?", (job_hash,)
-        ).fetchone()
+    def job_status(self, job_hash: str, run_id: int | None = None) -> str | None:
+        if run_id is not None:
+            row = self.conn.execute(
+                "SELECT status FROM jobs WHERE run_id = ? AND job_hash = ?",
+                (run_id, job_hash),
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                "SELECT status FROM jobs WHERE job_hash = ? ORDER BY id DESC LIMIT 1",
+                (job_hash,),
+            ).fetchone()
         return str(row["status"]) if row else None
+
+    def reuse_completed_job(
+        self, run_id: int, job_hash: str, job: Any, prompt: dict[str, Any]
+    ) -> bool:
+        """If this job is already done in ``run_id`` or an earlier run, link it to ``run_id``."""
+
+        if self.job_status(job_hash, run_id=run_id) == "done":
+            return True
+        source = self.conn.execute(
+            "SELECT id, prompt_id FROM jobs WHERE job_hash = ? AND status = 'done'"
+            " ORDER BY id DESC LIMIT 1",
+            (job_hash,),
+        ).fetchone()
+        if not source:
+            return False
+        source_images = self.conn.execute(
+            "SELECT * FROM images WHERE job_id = ? ORDER BY idx", (source["id"],)
+        ).fetchall()
+        if not source_images:
+            return False
+
+        job_id = self.add_job(run_id, job_hash, job, prompt)
+        self.set_status(job_id, "done", prompt_id=source["prompt_id"])
+        for img in source_images:
+            self.add_image(
+                job_id=job_id,
+                idx=int(img["idx"]),
+                filename=str(img["filename"]),
+                subfolder=str(img["subfolder"]),
+                type_=str(img["type"]),
+                path=str(img["path"]),
+                sha256=img["sha256"],
+                width=img["width"],
+                height=img["height"],
+                size=img["bytes"],
+            )
+            new_img = self.conn.execute(
+                "SELECT id FROM images WHERE job_id = ? AND idx = ?",
+                (job_id, int(img["idx"])),
+            ).fetchone()
+            if new_img:
+                for sc in self.conn.execute(
+                    "SELECT scorer, version, axis, value, meta_json FROM scores WHERE image_id = ?",
+                    (img["id"],),
+                ):
+                    self.conn.execute(
+                        "INSERT OR REPLACE INTO scores(image_id, scorer, version, axis, value,"
+                        " meta_json, created_at) VALUES (?,?,?,?,?,?,?)",
+                        (
+                            new_img["id"],
+                            sc["scorer"],
+                            sc["version"],
+                            sc["axis"],
+                            sc["value"],
+                            sc["meta_json"],
+                            time.time(),
+                        ),
+                    )
+        self.conn.commit()
+        return True
 
     def set_status(
         self, job_id: int, status: str, *, prompt_id: str | None = None, error: str | None = None
@@ -261,10 +373,13 @@ class Store:
         query = f"""
             SELECT i.id, i.path, j.subject, j.lora_id, j.epoch, j.strength, j.scenario, j.seed,
                    j.condition,
-                   MAX(CASE WHEN s.axis = 'identity' THEN s.value END)  AS identity,
-                   MAX(CASE WHEN s.axis = 'adherence' THEN s.value END) AS adherence,
-                   MAX(CASE WHEN s.axis = 'quality' THEN s.value END)   AS quality,
-                   MAX(CASE WHEN s.axis = 'critical' THEN s.value END)  AS critical
+                   MAX(CASE WHEN s.axis = 'identity' THEN s.value END)     AS identity,
+                   MAX(CASE WHEN s.axis = 'adherence' THEN s.value END)    AS adherence,
+                   MAX(CASE WHEN s.axis = 'quality' THEN s.value END)      AS quality,
+                   MAX(CASE WHEN s.axis = 'critical' THEN s.value END)     AS critical,
+                   MAX(CASE WHEN s.axis = 'identity' THEN s.meta_json END)  AS identity_meta,
+                   MAX(CASE WHEN s.axis = 'adherence' THEN s.meta_json END) AS adherence_meta,
+                   MAX(CASE WHEN s.axis = 'critical' THEN s.meta_json END)  AS critical_meta
             FROM images i
             JOIN jobs j ON j.id = i.job_id
             LEFT JOIN scores s ON s.image_id = i.id

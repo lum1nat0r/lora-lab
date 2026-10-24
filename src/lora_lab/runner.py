@@ -93,6 +93,7 @@ def run_jobs(
     dry_run: bool = False,
     retries: int = 2,
     on_progress: Callable[[str], None] | None = None,
+    should_cancel: Callable[[], bool] | None = None,
     object_info: dict[str, Any] | None = None,
 ) -> RunStats:
     stats = RunStats()
@@ -105,10 +106,16 @@ def run_jobs(
     images_root.mkdir(parents=True, exist_ok=True)
 
     for job in jobs:
+        if should_cancel is not None and should_cancel():
+            break
         stats.total += 1
         prompt, job_hash = build_prompt(job, project, api, object_info=object_info)
 
-        if store.job_status(job_hash) == "done":
+        if not dry_run and store.reuse_completed_job(run_id, job_hash, job, prompt):
+            stats.skipped += 1
+            _progress(on_progress, f"skip  {job.label()}")
+            continue
+        if dry_run and store.job_status(job_hash, run_id=run_id) == "done":
             stats.skipped += 1
             _progress(on_progress, f"skip  {job.label()}")
             continue
@@ -128,13 +135,20 @@ def run_jobs(
             attempt += 1
             try:
                 prompt_id = client.queue_prompt(prompt)
-                entry = client.wait(prompt_id)
+                entry = (
+                    client.wait(prompt_id, should_cancel=should_cancel)
+                    if should_cancel is not None
+                    else client.wait(prompt_id)
+                )
                 _save_outputs(project, store, job_id, job, entry, images_root, client)
                 store.set_status(job_id, "done", prompt_id=prompt_id)
                 stats.done += 1
                 _progress(on_progress, f"done  {job.label()}")
                 break
             except (ComfyError, OSError) as exc:
+                if should_cancel is not None and should_cancel():
+                    store.set_status(job_id, "pending", error="cancelled")
+                    return stats
                 if attempt > retries:
                     store.set_status(job_id, "failed", error=str(exc))
                     stats.failed += 1

@@ -35,10 +35,17 @@ def test_store_roundtrip(tmp_path: Path) -> None:
     assert store.job_status("hash1") == "done"
 
     store.add_image(job_id, 0, "a.png", "", "output", "images/a.png", "sha", 64, 48, 10)
+    store.add_score(1, "health", "v1", "quality", 0.85, {"sharpness": 5.0})
     assert store.image_count() == 1
     counts = store.counts()
     assert counts["done"] == 1
     assert counts["total"] == 1
+
+    # Reusing the same job_hash in a second run links the image & score to the new run
+    run2_id = store.upsert_run("test2", "abc", "fast", {})
+    assert store.reuse_completed_job(run2_id, "hash1", job, {}) is True
+    assert len(store.scored_images(run2_id)) == 1
+    assert store.scored_images(run2_id)[0]["quality"] == 0.85
     store.close()
 
 

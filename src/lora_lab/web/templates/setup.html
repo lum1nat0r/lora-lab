@@ -72,8 +72,31 @@
 </form>
 
 <h2>Grid</h2>
-<p class="muted">Strengths, Seeds und Szenarien stehen unter
+<p class="muted">Strengths, Seeds, Kontroll-Modi und Szenarien stehen unter
 <a href="/setup/grid">Grid-Einstellungen</a>. Die LoRA-Auswahl unter
 <a href="/loras">LoRAs</a>.</p>
+
+<h2 id="vlm-settings">VLM-Judge (Prompt-Bewertung)</h2>
+<p class="muted">OpenAI-kompatibler Endpunkt (Ollama, vLLM, llama.cpp, LM Studio) zur Bewertung der Szenario-Attribute.</p>
+<form method="post" action="/setup/vlm/save">
+  <div class="row">
+    <div>
+      <label>VLM URL</label>
+      <input name="vlm_url" value="{{ project.vlm_url or '' }}" placeholder="http://192.168.188.62:11434/v1">
+    </div>
+    <div>
+      <label>Modellname</label>
+      <input name="vlm_model" value="{{ project.vlm_model or '' }}" placeholder="qwen2.5-vl:7b">
+    </div>
+    <div>
+      <label>API-Key (optional)</label>
+      <input name="vlm_api_key" type="password" value="{{ project.vlm_api_key or '' }}" placeholder="optional">
+    </div>
+  </div>
+  <div class="actions">
+    <button class="primary" type="submit" formaction="/setup/vlm/save">VLM speichern</button>
+    <button class="button" type="submit" formaction="/setup/vlm/test">Verbindung testen</button>
+  </div>
+</form>
 
 {% endblock %}

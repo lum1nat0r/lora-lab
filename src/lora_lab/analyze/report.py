@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from ..db import Store
+from ..scorers.defects import pairwise_diversity
 from .stats import (
     AXES,
     LoraResult,
@@ -14,6 +15,7 @@ from .stats import (
     is_fail,
     is_pass,
     mean,
+    pareto_front,
     rank_stability,
 )
 
@@ -23,10 +25,44 @@ HEADER = (
 )
 
 
+def _row_meta(row, column: str) -> dict:
+    if column not in row.keys() or not row[column]:
+        return {}
+    try:
+        data = json.loads(row[column])
+        return data if isinstance(data, dict) else {}
+    except (TypeError, json.JSONDecodeError):
+        return {}
+
+
+def _format_adherence_details(
+    passed: tuple[str, ...], failed: tuple[str, ...], missing: tuple[str, ...]
+) -> str:
+    parts = []
+    if passed:
+        parts.append("✓ " + ", ".join(passed))
+    if failed:
+        parts.append("✗ " + ", ".join(failed))
+    if missing:
+        parts.append("? " + ", ".join(missing))
+    return " · ".join(parts)
+
+
 def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
     samples = []
     for row in store.scored_images(run_id):
         critical = row["critical"]
+        id_meta = _row_meta(row, "identity_meta")
+        adh_meta = _row_meta(row, "adherence_meta")
+        crit_meta = _row_meta(row, "critical_meta")
+        raw_emb = id_meta.get("embedding")
+        embedding = (
+            tuple(float(x) for x in raw_emb)
+            if isinstance(raw_emb, list) and raw_emb
+            else None
+        )
+        raw_leak = id_meta.get("leakage")
+        raw_def = crit_meta.get("defect_index")
         samples.append(
             Sample(
                 lora_id=str(row["lora_id"]) or f"{row['subject']}:base",
@@ -41,6 +77,12 @@ def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
                 strength=float(row["strength"]),
                 image_id=int(row["id"]) if "id" in row.keys() and row["id"] is not None else None,
                 path=str(row["path"]) if "path" in row.keys() and row["path"] else "",
+                adherence_passed=tuple(str(x) for x in (adh_meta.get("passed") or ())),
+                adherence_failed=tuple(str(x) for x in (adh_meta.get("failed") or ())),
+                adherence_missing=tuple(str(x) for x in (adh_meta.get("missing") or ())),
+                leakage=float(raw_leak) if raw_leak is not None else None,
+                embedding=embedding,
+                defect_index=float(raw_def) if raw_def is not None else None,
             )
         )
     return samples
@@ -125,11 +167,16 @@ def build_report(
     images_by_op: dict[str, list[dict]] = {}
     images_by_cell: dict[tuple[str, str], list[dict]] = {}
     compare_slots: dict[tuple[str, int], dict[str, dict]] = {}
+    embeddings_by_op: dict[str, list[list[float]]] = {}
+    leakages_by_op: dict[str, list[float]] = {}
     unscored: list[dict] = []
 
     for sample in samples:
         key = f"{sample.lora_id}@ep{sample.epoch}@s{sample.strength:g}"
         utility = image_utility(sample, weights)
+        adh_summary = _format_adherence_details(
+            sample.adherence_passed, sample.adherence_failed, sample.adherence_missing
+        )
         item = {
             "id": sample.image_id,
             "path": sample.path,
@@ -142,12 +189,22 @@ def build_report(
             "seed": sample.seed,
             "identity": sample.identity,
             "adherence": sample.adherence,
+            "adherence_passed": list(sample.adherence_passed),
+            "adherence_failed": list(sample.adherence_failed),
+            "adherence_missing": list(sample.adherence_missing),
+            "adherence_details": adh_summary,
             "quality": sample.quality,
             "critical": sample.critical,
+            "leakage": sample.leakage,
+            "defect_index": sample.defect_index,
             "utility": utility,
             "passed": is_pass(sample) if utility is not None else False,
             "failed": is_fail(sample) if utility is not None else False,
         }
+        if sample.embedding is not None:
+            embeddings_by_op.setdefault(key, []).append(list(sample.embedding))
+        if sample.leakage is not None:
+            leakages_by_op.setdefault(key, []).append(sample.leakage)
         if sample.path:
             compare_slots.setdefault((sample.scenario, sample.seed), {})[key] = item
         if utility is None:
@@ -199,11 +256,18 @@ def build_report(
         name: sum(p for rank, p in values.items() if rank <= 1.5)
         for name, values in ranks.items()
     }
+    pareto_ops = (
+        pareto_front({operating_point(r): (r.mean, r.robustness) for r in results})
+        if results
+        else []
+    )
+    pareto_set = set(pareto_ops)
     return {
         "samples": sum(r.n for r in results),
         "total_images": len(samples),
         "unscored": unscored,
         "operating_points": op_order,
+        "pareto_front": pareto_ops,
         "scenario_names": scenarios,
         "seeds": seeds,
         "matrix": matrix,
@@ -235,6 +299,13 @@ def build_report(
                 "fail_rate": r.fail_rate,
                 "scenarios": r.scenarios,
                 "per_scenario": r.per_scenario,
+                "pareto": operating_point(r) in pareto_set,
+                "diversity": pairwise_diversity(embeddings_by_op.get(operating_point(r), [])),
+                "max_leakage": (
+                    max(leakages_by_op[operating_point(r)])
+                    if leakages_by_op.get(operating_point(r))
+                    else None
+                ),
                 "axes": components.get(operating_point(r), {}),
                 "images": images_by_op.get(operating_point(r), []),
             }

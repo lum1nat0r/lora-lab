@@ -55,6 +55,12 @@ class VLMSettings:
             return base
         return f"{base}/chat/completions"
 
+    def models_endpoint(self) -> str:
+        base = self.base_url.rstrip("/")
+        if base.endswith("/chat/completions"):
+            base = base[: -len("/chat/completions")]
+        return f"{base}/models"
+
 
 class VLMJudge:
     name = "vlm"
@@ -78,6 +84,33 @@ class VLMJudge:
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+    def ping(self) -> dict[str, Any]:
+        """Verify the VLM endpoint responds and check whether the configured model is listed."""
+
+        try:
+            response = self._client.get(self.settings.models_endpoint())
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, json.JSONDecodeError) as exc:
+            return {"ok": False, "error": str(exc), "models": [], "matched": False}
+
+        raw_models = payload.get("data") if isinstance(payload, dict) else None
+        models: list[str] = []
+        if isinstance(raw_models, list):
+            for item in raw_models:
+                if isinstance(item, dict) and item.get("id"):
+                    models.append(str(item["id"]))
+        wanted = self.settings.model.strip()
+        matched = not models or any(
+            m == wanted or m.startswith(wanted) or wanted in m for m in models
+        )
+        return {
+            "ok": True,
+            "model": wanted,
+            "models": models,
+            "matched": matched,
+        }
 
     # -- protocol ----------------------------------------------------------
     def judge(self, image: ImageRef, attributes: Sequence[Any]) -> dict[str, bool | None]:

@@ -81,6 +81,8 @@
            data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else '–' }}"
            data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
            data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+           data-adherence-details="{{ img.adherence_details or '' }}"
+           data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
            data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
            data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
         <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
@@ -116,7 +118,12 @@
       <td>
         <strong>{{ r.lora_id }}</strong>
         <span class="muted">· ep{{ r.epoch }} · s{{ '%g'|format(r.strength) }}</span>
-        <div class="hint" style="margin:0">{{ r.subject }} · {{ r.scenarios }} Szenarien</div>
+        {% if r.pareto %}<span class="pill" title="Pareto-optimal: bestes Verhältnis aus Gesamt-Score und Robustheit">Pareto ★</span>{% endif %}
+        <div class="hint" style="margin:0">
+          {{ r.subject }} · {{ r.scenarios }} Szenarien
+          {% if r.diversity is not none %} · Diversität {{ '%.0f%%'|format(r.diversity * 100) }}{% endif %}
+          {% if r.max_leakage is not none %} · max. Train-Ähnlichkeit {{ '%.0f%%'|format(r.max_leakage * 100) }}{% endif %}
+        </div>
       </td>
       <td class="num"><strong>{{ '%.0f%%'|format(r.mean * 100) }}</strong></td>
       <td class="num muted">{{ '%.0f%%'|format(r.lcb * 100) }}</td>
@@ -160,6 +167,8 @@
                data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else '–' }}"
                data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
                data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+               data-adherence-details="{{ img.adherence_details or '' }}"
+               data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
                data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
                data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
             <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
@@ -297,6 +306,8 @@
            data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else 'unbewertet' }}"
            data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
            data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+           data-adherence-details="{{ img.adherence_details or '' }}"
+           data-leakage="{{ '%.0f%%'|format(img.leakage * 100) if img.leakage is not none else '' }}"
            data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
            data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else ('Grenzwertig' if img.utility is not none else 'Unbewertet')) }}">
         <img src="/images/{{ img.path }}" alt="{{ op }}" loading="lazy">
@@ -337,7 +348,9 @@
           <tr><th>Status</th><td id="im-status"></td></tr>
           <tr><th>Gesamt-Score</th><td><strong id="im-utility"></strong></td></tr>
           <tr><th>Gesicht (Identity)</th><td id="im-identity"></td></tr>
+          <tr id="im-leakage-row" hidden><th>Train-Ähnlichkeit</th><td id="im-leakage"></td></tr>
           <tr><th>Prompt (Adherence)</th><td id="im-adherence"></td></tr>
+          <tr id="im-adherence-details-row" hidden><th>Prompt-Checkliste</th><td id="im-adherence-details"></td></tr>
           <tr><th>Qualität (Quality)</th><td id="im-quality"></td></tr>
         </table>
         <div class="actions">

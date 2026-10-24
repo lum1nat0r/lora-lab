@@ -49,6 +49,12 @@ class Sample:
     strength: float = 0.0
     image_id: int | None = None
     path: str = ""
+    adherence_passed: tuple[str, ...] = ()
+    adherence_failed: tuple[str, ...] = ()
+    adherence_missing: tuple[str, ...] = ()
+    leakage: float | None = None
+    embedding: tuple[float, ...] | None = None
+    defect_index: float | None = None
 
 
 @dataclass

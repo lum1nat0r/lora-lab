@@ -12,12 +12,15 @@ object implementing ``embed(path) -> list[float] | None``.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from .base import ImageRef, Score
+from .defects import leakage
 
 
 def cosine(a: list[float], b: list[float]) -> float:
@@ -159,10 +162,12 @@ class IdentityScorer:
         references: SubjectReferences,
         calibration: Calibration,
         embedder,
+        training: dict[str, list[list[float]]] | None = None,
     ) -> None:
         self.references = references
         self.calibration = calibration
         self.embedder = embedder
+        self.training = training or {}
         self._centroids = references.centroids()
 
     def score(self, image: ImageRef) -> list[Score]:
@@ -189,13 +194,22 @@ class IdentityScorer:
                 )
             ]
         similarity = cosine(embedding, center)
+        meta: dict[str, Any] = {
+            "cosine": round(similarity, 4),
+            "embedding": [round(float(x), 4) for x in embedding],
+        }
+        train_vecs = self.training.get(image.subject)
+        if train_vecs:
+            leak = leakage(embedding, train_vecs)
+            if leak is not None:
+                meta["leakage"] = round(leak, 4)
         return [
             Score(
                 axis="identity",
                 value=self.calibration.probability(similarity),
                 scorer=self.name,
                 version=self.version,
-                meta={"cosine": round(similarity, 4)},
+                meta=meta,
             )
         ]
 
@@ -356,24 +370,108 @@ class ArcFaceEmbedder:
         return l2_normalize(output)
 
 
-def build_references(
-    subject_dirs: dict[str, Path], embedder, *, limit: int = 40
-) -> SubjectReferences:
-    """Embed reference images per subject."""
+def _load_embedding_cache(cache_path: Path | None) -> dict[str, list[float] | None]:
+    if cache_path is None or not cache_path.is_file():
+        return {}
+    try:
+        data = json.loads(cache_path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
 
+
+def _save_embedding_cache(
+    cache_path: Path | None, cache: dict[str, list[float] | None]
+) -> None:
+    if cache_path is None:
+        return
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cache_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(cache), encoding="utf-8")
+        tmp.replace(cache_path)
+    except OSError:
+        pass
+
+
+def _embed_folder(
+    directory: Path,
+    embedder,
+    cache: dict[str, list[float] | None],
+    *,
+    limit: int,
+) -> tuple[list[list[float]], bool]:
+    files = sorted(
+        p
+        for p in Path(directory).iterdir()
+        if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+    )[:limit]
+    vectors: list[list[float]] = []
+    dirty = False
+    for file in files:
+        try:
+            digest = hashlib.sha256(file.read_bytes()).hexdigest()
+        except OSError:
+            continue
+        if digest in cache:
+            embedding = cache[digest]
+        else:
+            embedding = embedder.embed(str(file))
+            cache[digest] = embedding
+            dirty = True
+        if embedding is not None:
+            vectors.append(embedding)
+    return vectors, dirty
+
+
+def build_references(
+    subject_dirs: dict[str, Path],
+    embedder,
+    *,
+    limit: int = 40,
+    cache_path: Path | None = None,
+) -> SubjectReferences:
+    """Embed reference images per subject, reusing cached embeddings when available."""
+
+    cache = _load_embedding_cache(cache_path)
+    dirty = False
     refs = SubjectReferences()
     for subject, directory in subject_dirs.items():
-        files = sorted(
-            p
-            for p in Path(directory).iterdir()
-            if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
-        )[:limit]
-        for file in files:
-            embedding = embedder.embed(str(file))
-            if embedding is not None:
-                refs.add(subject, embedding)
+        vectors, changed = _embed_folder(directory, embedder, cache, limit=limit)
+        dirty = dirty or changed
+        for embedding in vectors:
+            refs.add(subject, embedding)
+    if dirty:
+        _save_embedding_cache(cache_path, cache)
     return refs
 
 
+def build_training_embeddings(
+    train_dirs: dict[str, Path],
+    embedder,
+    *,
+    limit: int = 80,
+    cache_path: Path | None = None,
+) -> dict[str, list[list[float]]]:
+    """Embed training images per subject (used for memorisation/leakage detection)."""
+
+    cache = _load_embedding_cache(cache_path)
+    dirty = False
+    out: dict[str, list[list[float]]] = {}
+    for subject, directory in train_dirs.items():
+        vectors, changed = _embed_folder(directory, embedder, cache, limit=limit)
+        dirty = dirty or changed
+        if vectors:
+            out[subject] = vectors
+    if dirty:
+        _save_embedding_cache(cache_path, cache)
+    return out
+
+
 def calibrate_from_references(references: SubjectReferences) -> Calibration:
-    return Calibration.fit(references.genuine_scores(), references.impostor_scores())
+    genuine = references.genuine_scores()
+    impostor = references.impostor_scores()
+    if not genuine or not impostor:
+        # Fallback to default ArcFace calibration when only one subject (or <2 refs) is present
+        return Calibration(genuine=len(genuine), impostor=len(impostor))
+    return Calibration.fit(genuine, impostor)

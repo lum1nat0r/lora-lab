@@ -33,6 +33,20 @@
     </div>
   </div>
 
+  <h3>Vergleichs- &amp; Kontroll-Modi</h3>
+  <div class="row">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" name="conditions" value="base_only" style="width:auto"
+             {% if 'base_only' in grid.conditions %}checked{% endif %}>
+      <span><strong>Basismodell-Vergleich mitrendern (base_only)</strong> — rendert dieselben Prompts &amp; Seeds ohne LoRA</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" name="conditions" value="no_trigger" style="width:auto"
+             {% if 'no_trigger' in grid.conditions %}checked{% endif %}>
+      <span><strong>Ohne Triggerwort testen (no_trigger)</strong> — prüft, ob die LoRA auch ohne Triggerwort durchschlägt (Overfitting)</span>
+    </label>
+  </div>
+
   <h3>Szenarien</h3>
   <table>
     <tr><th></th><th>ID</th><th>Kategorie</th><th>Attribute</th></tr>

@@ -68,7 +68,10 @@ def run_page(request: Request) -> HTMLResponse:
             "refs": refs,
             "refs_ok": sum(1 for value in refs.values() if value),
             "refs_total": len(refs),
-            "vlm": bool(os.environ.get("VLM_JUDGE_URL") and os.environ.get("VLM_JUDGE_MODEL")),
+            "vlm": bool(
+                (project.vlm_url or os.environ.get("VLM_JUDGE_URL"))
+                and (project.vlm_model or os.environ.get("VLM_JUDGE_MODEL"))
+            ),
             "identity": Path(
                 os.environ.get("ARCFACE_MODEL", "/opt/face/w600k_r50.onnx")
             ).is_file(),
@@ -100,10 +103,12 @@ async def run_generate(request: Request) -> RedirectResponse:
 
 
 @router.post("/run/score")
-def run_score(request: Request) -> RedirectResponse:
+async def run_score(request: Request) -> RedirectResponse:
     state = _state(request)
+    form = await request.form()
+    only_missing = not bool(form.get("force"))
     try:
-        state.runner.start("score", state.runner.score)
+        state.runner.start("score", state.runner.score, only_missing)
     except RuntimeError as exc:
         return _flash("/run", err=str(exc))
     return _flash("/run", ok="scoring started")

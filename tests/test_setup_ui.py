@@ -344,5 +344,44 @@ def test_deleting_planned_scenarios_warns_once_without_crashing(web) -> None:
         assert client.get(url).status_code == 200
 
     saved_grid = yaml.safe_load((target / "config" / "local" / "grid.yaml").read_text())
-    assert "scenarios" not in saved_grid
+    assert saved_grid["scenarios"] == []
+    assert client.app.state.lora.project.scenario_list() == []
+
+
+def test_grid_conditions_and_vlm_settings(web, monkeypatch) -> None:
+    client, target, _ = web
+    res = client.post(
+        "/setup/grid/save",
+        data={
+            "name": "cond-grid",
+            "strengths": "0.9",
+            "seeds": "42",
+            "scenarios": ["still_life"],
+            "conditions": ["base_only", "no_trigger"],
+            "profile": "fast",
+            "negative_prompt": "bad",
+            "width": "1024",
+            "height": "1024",
+        },
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    saved = yaml.safe_load((target / "config" / "local" / "grid.yaml").read_text())
+    assert saved["conditions"] == ["lora", "base_only", "no_trigger"]
+
+    res_vlm = client.post(
+        "/setup/vlm/save",
+        data={
+            "vlm_url": "http://localhost:11434/v1",
+            "vlm_model": "qwen2.5-vl:7b",
+            "vlm_api_key": "secret",
+        },
+        follow_redirects=False,
+    )
+    assert res_vlm.status_code == 303
+    proj_cfg = yaml.safe_load((target / "config" / "local" / "project.yaml").read_text())
+    assert proj_cfg["vlm_url"] == "http://localhost:11434/v1"
+    assert proj_cfg["vlm_model"] == "qwen2.5-vl:7b"
+    assert client.app.state.lora.project.vlm_model == "qwen2.5-vl:7b"
+
 

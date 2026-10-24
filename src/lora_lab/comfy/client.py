@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -63,9 +64,19 @@ class ComfyClient:
         entry = data.get(prompt_id)
         return entry if entry else None
 
-    def wait(self, prompt_id: str, *, poll: float = 1.5, timeout: float = 1800.0) -> dict[str, Any]:
+    def wait(
+        self,
+        prompt_id: str,
+        *,
+        poll: float = 1.5,
+        timeout: float = 1800.0,
+        should_cancel: Callable[[], bool] | None = None,
+    ) -> dict[str, Any]:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
+            if should_cancel is not None and should_cancel():
+                self.interrupt()
+                raise ComfyError("cancelled")
             entry = self.history(prompt_id)
             if entry:
                 status = entry.get("status") or {}
@@ -74,8 +85,19 @@ class ComfyClient:
                     raise ComfyError(f"prompt {prompt_id} failed: {_status_messages(status)}")
                 if state == "success" or entry.get("outputs"):
                     return entry
+            if should_cancel is not None and should_cancel():
+                self.interrupt()
+                raise ComfyError("cancelled")
             time.sleep(poll)
         raise ComfyError(f"prompt {prompt_id} timed out after {timeout:.0f}s")
+
+    def interrupt(self) -> None:
+        """Ask ComfyUI to abort the currently running prompt."""
+
+        try:
+            self._client.post("/interrupt")
+        except httpx.HTTPError:
+            pass
 
     def view(self, filename: str, subfolder: str = "", type_: str = "output") -> bytes:
         params = {"filename": filename, "subfolder": subfolder, "type": type_}

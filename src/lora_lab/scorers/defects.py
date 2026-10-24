@@ -192,12 +192,13 @@ class FaceCountScorer:
                 )
             ]
         count = len(faces)
+        detected = {"multi_face": 3} if count > 1 else {}
         return [
             Score(
                 axis="critical",
-                value=1.0 if count > 1 else 0.0,
+                value=1.0 if has_critical(detected) else 0.0,
                 scorer=self.name,
                 version=self.version,
-                meta={"faces": count},
+                meta={"faces": count, "defect_index": round(defect_index(detected), 4)},
             )
         ]

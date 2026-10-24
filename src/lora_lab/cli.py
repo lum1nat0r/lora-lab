@@ -178,6 +178,27 @@ def _doctor(project: ProjectConfig) -> int:
     except ComfyError as exc:
         print(f"comfyui     unreachable ({exc}) — continuing with fallback specs")
 
+    if project.vlm_url and project.vlm_model:
+        from .scorers.vlm import VLMJudge, VLMSettings
+
+        with VLMJudge(
+            VLMSettings(
+                base_url=project.vlm_url,
+                model=project.vlm_model,
+                api_key=project.vlm_api_key,
+                timeout=10.0,
+            )
+        ) as judge:
+            vlm_status = judge.ping()
+        if vlm_status["ok"] and vlm_status["matched"]:
+            print(f"vlm         ok ({project.vlm_model} at {project.vlm_url})")
+        elif vlm_status["ok"]:
+            print(
+                f"vlm         reachable, but model {project.vlm_model!r} not in {vlm_status['models']}"
+            )
+        else:
+            print(f"vlm         unreachable ({vlm_status['error']})")
+
     try:
         raw, api = _load_api(project, object_info)
     except (WorkflowError, FileNotFoundError, json.JSONDecodeError) as exc:
@@ -454,6 +475,10 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
     scorers = [HealthScorer(target_megapixels=args.target_megapixels)]
     attributes = {s.id: s.attributes for s in project.scenarios.values()}
 
+    vlm_url = args.vlm_url or project.vlm_url
+    vlm_model = args.vlm_model or project.vlm_model
+    vlm_api_key = args.vlm_api_key or project.vlm_api_key
+
     if args.verdicts and args.vlm_url:
         print("use either --verdicts or --vlm-url, not both", file=sys.stderr)
         return 2
@@ -462,17 +487,17 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
     if args.verdicts:
         judge = JsonVerdicts(Path(args.verdicts))
         scorers.append(AdherenceScorer(judge, attributes))
-    elif args.vlm_url:
-        if not args.vlm_model:
+    elif vlm_url:
+        if not vlm_model:
             print("--vlm-url needs --vlm-model", file=sys.stderr)
             return 2
         from .scorers.vlm import VLMJudge, VLMSettings
 
         vlm_judge = VLMJudge(
             VLMSettings(
-                base_url=args.vlm_url,
-                model=args.vlm_model,
-                api_key=args.vlm_api_key,
+                base_url=vlm_url,
+                model=vlm_model,
+                api_key=vlm_api_key,
                 max_side=args.max_side,
             )
         )
@@ -484,6 +509,7 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
             ArcFaceEmbedder,
             IdentityScorer,
             build_references,
+            build_training_embeddings,
             calibrate_from_references,
         )
 
@@ -501,24 +527,31 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
             for subject in project.subjects.values()
             if subject.ref_dir and project.path(subject.ref_dir).is_dir()
         }
-        if len(directories) < 2:
+        train_dirs = {
+            subject.id: project.path(subject.train_dir)
+            for subject in project.subjects.values()
+            if subject.train_dir and project.path(subject.train_dir).is_dir()
+        }
+        if not directories:
             print(
-                "identity calibration needs reference folders for at least two subjects;"
+                "identity scoring needs at least one subject with a reference folder;"
                 " face counting still runs",
                 file=sys.stderr,
             )
         else:
-            references = build_references(directories, embedder)
-            try:
-                calibration = calibrate_from_references(references)
-            except ValueError as exc:
-                print(f"calibration failed: {exc}", file=sys.stderr)
-                return 2
+            cache_path = project.data_dir / "ref_embeddings.json"
+            references = build_references(directories, embedder, cache_path=cache_path)
+            training = (
+                build_training_embeddings(train_dirs, embedder, cache_path=cache_path)
+                if train_dirs
+                else {}
+            )
+            calibration = calibrate_from_references(references)
             print(
                 f"calibration  slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
                 f" genuine={calibration.genuine} impostor={calibration.impostor}"
             )
-            scorers.append(IdentityScorer(references, calibration, embedder))
+            scorers.append(IdentityScorer(references, calibration, embedder, training=training))
 
     with Store(project.db_path) as store:
         run_id = None

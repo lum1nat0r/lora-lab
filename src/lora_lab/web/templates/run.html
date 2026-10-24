@@ -21,12 +21,11 @@
 
 {% if not loras %}<div class="flash err">Keine LoRAs gewählt — <a href="/loras">jetzt auswählen</a>.</div>{% endif %}
 {% if not scenarios %}<div class="flash err">Keine Szenarien im Grid — <a href="/setup">Szenarien anlegen</a>.</div>{% endif %}
-{% if not vlm %}<div class="flash">Kein VLM konfiguriert: Adhärenz wird nicht bewertet. Setze
-  <code>VLM_JUDGE_URL</code> und <code>VLM_JUDGE_MODEL</code> im Container.</div>{% endif %}
+{% if not vlm %}<div class="flash">Kein VLM konfiguriert: Adhärenz wird nicht bewertet. Konfiguriere ihn unter
+  <a href="/setup#vlm-settings">Setup → VLM-Judge</a> oder über <code>VLM_JUDGE_URL</code> / <code>VLM_JUDGE_MODEL</code>.</div>{% endif %}
 {% if not identity %}<div class="flash">Identitäts-Scoring ist nicht verfügbar: die ONNX-Modelle
   fehlen im Container. Face-Count und Qualität laufen trotzdem.</div>{% endif %}
-{% if refs_ok < 2 %}<div class="flash">Für Identität braucht es Referenzen
-  von mindestens zwei Subjekten.</div>{% endif %}
+{% if refs_ok < 1 %}<div class="flash">Für Identität braucht mindestens ein Subjekt Referenzbilder.</div>{% endif %}
 
 <h2>Starten</h2>
 <div class="actions">
@@ -34,8 +33,11 @@
     <input name="limit" value="{{ default_limit }}" style="width:90px" title="0 = alles">
     <button class="primary" type="submit" data-run-button>Generieren</button>
   </form>
-  <form method="post" action="/run/score">
+  <form method="post" action="/run/score" style="display:flex;gap:8px;align-items:center">
     <button type="submit" data-run-button>Scoren</button>
+    <label class="hint" style="display:inline-flex;align-items:center;gap:5px;margin:0;cursor:pointer" title="Standardmäßig werden nur neue oder unvollständig bewertete Bilder berechnet">
+      <input type="checkbox" name="force" value="1" style="width:auto"> Alles neu bewerten
+    </label>
   </form>
   <form method="post" action="/run/stop">
     <button class="danger" type="submit" id="run-stop" disabled>Stoppen</button>

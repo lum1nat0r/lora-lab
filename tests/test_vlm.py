@@ -120,3 +120,16 @@ def test_coercion_table(value, expected) -> None:
     from lora_lab.scorers.vlm import _coerce
 
     assert _coerce(value) is expected
+
+
+def test_vlm_ping_checks_models_endpoint(tmp_path: Path) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/models")
+        return httpx.Response(200, json={"data": [{"id": "test-vlm"}, {"id": "other"}]})
+
+    judge, _ = judge_with(handler, tmp_path)
+    status = judge.ping()
+    assert status["ok"] is True
+    assert status["matched"] is True
+    assert "test-vlm" in status["models"]
+

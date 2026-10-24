@@ -143,6 +143,9 @@ class ProjectConfig(BaseModel):
     data_dir: Path
     comfyui_url: str = "http://127.0.0.1:8188"
     comfy_output_dir: Path | None = None
+    vlm_url: str | None = None
+    vlm_model: str | None = None
+    vlm_api_key: str | None = None
     db_path: Path
     subjects: dict[str, Subject]
     scenarios: dict[str, Scenario]
@@ -157,10 +160,7 @@ class ProjectConfig(BaseModel):
         wanted = self.grid.scenarios
         if wanted is None:
             return [s for s in self.scenarios.values() if s.category == "core"]
-        present = [self.scenarios[sid] for sid in wanted if sid in self.scenarios]
-        if present or not wanted:
-            return present
-        return [s for s in self.scenarios.values() if s.category == "core"]
+        return [self.scenarios[sid] for sid in wanted if sid in self.scenarios]
 
 
 def _read_yaml(path: Path) -> Any:
@@ -248,17 +248,14 @@ def _prune_scenarios(
         ", ".join(missing),
     )
     kept = [sid for sid in grid.scenarios if sid in valid_scenarios]
-    grid = grid.model_copy(update={"scenarios": kept or None})
+    grid = grid.model_copy(update={"scenarios": kept})
 
     local_grid = cfg_dir / "local" / "grid.yaml"
     if use_local and local_grid.exists():
         try:
             raw = _read_yaml(local_grid) or {}
             if isinstance(raw, dict) and "scenarios" in raw:
-                if kept:
-                    raw["scenarios"] = kept
-                else:
-                    raw.pop("scenarios", None)
+                raw["scenarios"] = kept
                 text = "# Edited in the lora-lab UI. Not committed.\n" + yaml.safe_dump(
                     raw, sort_keys=False, allow_unicode=True, width=1000
                 )
@@ -339,12 +336,19 @@ def load_project(root: Path, *, use_local: bool = True) -> ProjectConfig:
     if not db_path.is_absolute():
         db_path = root / db_path
 
+    vlm_url = (project.get("vlm_url") or os.environ.get("VLM_JUDGE_URL") or "").strip() or None
+    vlm_model = (project.get("vlm_model") or os.environ.get("VLM_JUDGE_MODEL") or "").strip() or None
+    vlm_api_key = (project.get("vlm_api_key") or os.environ.get("VLM_API_KEY") or "").strip() or None
+
     return ProjectConfig(
         root=root,
         data_dir=data_dir,
         comfyui_url=os.environ.get("COMFYUI_URL")
         or project.get("comfyui_url", "http://127.0.0.1:8188"),
         comfy_output_dir=comfy_output_dir,
+        vlm_url=vlm_url,
+        vlm_model=vlm_model,
+        vlm_api_key=vlm_api_key,
         db_path=db_path,
         subjects=subjects,
         scenarios=scenarios,

@@ -20,6 +20,7 @@ SCENARIO_HEADER = "# Edited in the lora-lab UI. Not committed.\n"
 SUBJECT_HEADER = "# Edited in the lora-lab setup UI. Not committed.\n"
 LORA_HEADER = "# Curated in the lora-lab UI. Not committed.\n"
 GRID_HEADER = "# Edited in the lora-lab UI. Not committed.\n"
+PROJECT_HEADER = "# Edited in the lora-lab UI. Not committed.\n"
 
 SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
 
@@ -53,6 +54,28 @@ def _write(path: Path, payload: dict[str, Any], header: str) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+
+
+def save_project_settings(
+    root: Path,
+    *,
+    vlm_url: str | None = None,
+    vlm_model: str | None = None,
+    vlm_api_key: str | None = None,
+) -> None:
+    target = local_path(root, "project.yaml")
+    base = _read(target) or _read(Path(root) / "config" / "project.yaml")
+    for key, value in (
+        ("vlm_url", vlm_url),
+        ("vlm_model", vlm_model),
+        ("vlm_api_key", vlm_api_key),
+    ):
+        cleaned = (value or "").strip()
+        if cleaned:
+            base[key] = cleaned
+        else:
+            base.pop(key, None)
+    _write(target, base, PROJECT_HEADER)
 
 
 # -- scenarios --------------------------------------------------------------

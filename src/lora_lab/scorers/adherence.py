@@ -47,6 +47,7 @@ def weighted_adherence(
 
     hit = 0.0
     total = 0.0
+    passed: list[str] = []
     missing: list[str] = []
     failed: list[str] = []
     for attribute in attributes:
@@ -58,11 +59,13 @@ def weighted_adherence(
         total += weight
         if verdict:
             hit += weight
+            passed.append(attribute.id)
         else:
             failed.append(attribute.id)
     if total == 0:
-        return None, {"missing": missing, "failed": failed, "judged": 0}
+        return None, {"passed": passed, "missing": missing, "failed": failed, "judged": 0}
     return hit / total, {
+        "passed": passed,
         "missing": missing,
         "failed": failed,
         "judged": int(len(attributes) - len(missing)),

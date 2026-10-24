@@ -124,8 +124,10 @@ class RunManager:
                 run_id=run_id,
                 limit=None,
                 on_progress=on_progress,
+                should_cancel=self.cancel.is_set,
                 object_info=object_info,
             )
+            self._check_cancel()
             self._append(
                 f"finished: {stats.done} done · {stats.skipped} skipped · {stats.failed} failed"
             )
@@ -137,13 +139,14 @@ class RunManager:
             client.close()
             store.close()
 
-    def score(self) -> None:
+    def score(self, only_missing: bool = True) -> None:
         project = load_project(self.state.root)
         scorers = [HealthScorer()]
         attributes = {scenario.id: scenario.attributes for scenario in project.scenarios.values()}
 
-        vlm_url = os.environ.get("VLM_JUDGE_URL")
-        vlm_model = os.environ.get("VLM_JUDGE_MODEL")
+        vlm_url = project.vlm_url or os.environ.get("VLM_JUDGE_URL")
+        vlm_model = project.vlm_model or os.environ.get("VLM_JUDGE_MODEL")
+        vlm_api_key = project.vlm_api_key or os.environ.get("VLM_API_KEY") or None
         judge = None
         if vlm_url and vlm_model:
             from ..scorers.adherence import AdherenceScorer
@@ -153,7 +156,7 @@ class RunManager:
                 VLMSettings(
                     base_url=vlm_url,
                     model=vlm_model,
-                    api_key=os.environ.get("VLM_API_KEY") or None,
+                    api_key=vlm_api_key,
                 )
             )
             scorers.append(AdherenceScorer(judge, attributes))
@@ -181,7 +184,14 @@ class RunManager:
 
         store = Store(project.db_path)
         try:
-            counts = score_run(project, store, scorers, on_progress=on_progress)
+            self.progress["total"] = len(store.images_for_run(None))
+            counts = score_run(
+                project,
+                store,
+                scorers,
+                skip_existing=only_missing,
+                on_progress=on_progress,
+            )
             self._append(" · ".join(f"{axis} {value}" for axis, value in sorted(counts.items())))
         finally:
             store.close()
@@ -197,23 +207,34 @@ class RunManager:
         from ..scorers.identity import (
             IdentityScorer,
             build_references,
+            build_training_embeddings,
             calibrate_from_references,
         )
 
         directories = {}
+        train_dirs = {}
         for subject in project.subjects.values():
-            if not subject.ref_dir:
-                continue
-            path = project.path(subject.ref_dir)
-            if path.is_dir():
-                directories[subject.id] = path
-        if len(directories) < 2:
-            self._append("identity skipped: need reference folders for at least two subjects")
+            if subject.ref_dir:
+                path = project.path(subject.ref_dir)
+                if path.is_dir():
+                    directories[subject.id] = path
+            if subject.train_dir:
+                tpath = project.path(subject.train_dir)
+                if tpath.is_dir():
+                    train_dirs[subject.id] = tpath
+        if not directories:
+            self._append("identity skipped: need a reference folder for at least one subject")
             return None
-        self._append(f"building reference embeddings for {len(directories)} subjects")
-        references = build_references(directories, embedder)
+        cache_path = project.data_dir / "ref_embeddings.json"
+        self._append(f"loading/building reference embeddings for {len(directories)} subject(s)")
+        references = build_references(directories, embedder, cache_path=cache_path)
+        training = (
+            build_training_embeddings(train_dirs, embedder, cache_path=cache_path)
+            if train_dirs
+            else {}
+        )
         calibration = calibrate_from_references(references)
         self._append(
             f"calibration: slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
         )
-        return IdentityScorer(references, calibration, embedder)
+        return IdentityScorer(references, calibration, embedder, training=training)

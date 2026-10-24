@@ -299,6 +299,18 @@ function openImageModal(el) {
   document.getElementById("im-identity").textContent = d.identity || "–";
   document.getElementById("im-adherence").textContent = d.adherence || "–";
   document.getElementById("im-quality").textContent = d.quality || "–";
+  const adhRow = document.getElementById("im-adherence-details-row");
+  const adhVal = document.getElementById("im-adherence-details");
+  if (adhRow && adhVal) {
+    adhVal.textContent = d.adherenceDetails || "";
+    adhRow.hidden = !d.adherenceDetails;
+  }
+  const leakRow = document.getElementById("im-leakage-row");
+  const leakVal = document.getElementById("im-leakage");
+  if (leakRow && leakVal) {
+    leakVal.textContent = d.leakage || "";
+    leakRow.hidden = !d.leakage;
+  }
   modal.classList.add("open");
 }
 

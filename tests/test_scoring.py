@@ -101,11 +101,46 @@ def test_identity_scorer_reports_probability() -> None:
         refs,
         Calibration(slope=10, intercept=-5),
         FakeEmbedder({"x.png": [1.0, 0.0]}),
+        training={"a": [[0.8, 0.6]]},
     )
     score = scorer.score(image_ref("x.png", subject="a"))[0]
     assert score.value is not None
     assert score.value > 0.9
     assert score.meta["cosine"] == pytest.approx(1.0)
+    assert score.meta["leakage"] == pytest.approx(0.8)
+    assert score.meta["embedding"] == [1.0, 0.0]
+
+
+def test_single_subject_calibration_fallback_and_embedding_cache(tmp_path: Path) -> None:
+    from lora_lab.scorers.identity import build_references, calibrate_from_references
+
+    ref_dir = tmp_path / "refs_a"
+    ref_dir.mkdir()
+    img = ref_dir / "1.png"
+    Image.new("RGB", (16, 16), (50, 60, 70)).save(img)
+
+    calls = 0
+
+    class CountingEmbedder:
+        def embed(self, path: str):
+            nonlocal calls
+            calls += 1
+            return [1.0, 0.0]
+
+    cache_file = tmp_path / "cache.json"
+    refs1 = build_references({"a": ref_dir}, CountingEmbedder(), cache_path=cache_file)
+    assert calls == 1
+    assert cache_file.is_file()
+
+    # Second call hits the cache without invoking the embedder
+    refs2 = build_references({"a": ref_dir}, CountingEmbedder(), cache_path=cache_file)
+    assert calls == 1
+    assert refs2.embeddings == refs1.embeddings
+
+    # Single subject falls back to default calibration instead of raising ValueError
+    cal = calibrate_from_references(refs2)
+    assert cal.slope == pytest.approx(12.0)
+    assert cal.intercept == pytest.approx(-5.0)
 
 
 # -- adherence --------------------------------------------------------------
