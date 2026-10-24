@@ -14,6 +14,7 @@ bleibt:
 | `/mnt/user/appdata/lora-lab/config` | `/app/config` | rw | Konfiguration inkl. `local/` |
 | `/mnt/user/appdata/lora-lab/data` | `/app/data` | rw | SQLite, gerenderte Bilder, Reports |
 | `/mnt/user/ai/training/datasets` | `/datasets` | ro | Referenz- und Trainingsordner |
+| `/mnt/user/ai/training/datasets/_refs` | `/datasets/_refs` | rw | Referenz-Uploads aus dem UI |
 | `/mnt/user/ai/models` | `/models` | ro | LoRA-Dateien, Metadaten |
 | `/mnt/user/ai/training/fizgig/Fizgig/user_data` | `/fizgig` | ro | Run-History, Loss-Logs |
 | `/mnt/user/ai/output` | `/comfy-output` | ro | fertige Bilder (schneller als HTTP) |
@@ -56,7 +57,10 @@ Im UI unter **Setup → Subjekt → Referenzen**:
 - Löschen einzelner Bilder per Klick
 
 Der Default ist `/datasets/_refs/<subjekt-id>`; der Ordner wird beim ersten
-Upload angelegt und im Subjekt gespeichert.
+Upload angelegt und im Subjekt gespeichert. `/datasets` selbst ist read-only
+gemountet, deshalb braucht der Unterordner `_refs` einen eigenen `:rw`-Mount
+(siehe `docker/compose.yaml`). Fehlt der, meldet das UI beim Upload einen
+Fehler statt abzubrechen.
 
 ## Referenzordner
 

@@ -25,6 +25,7 @@ from .store import (
     save_grid,
     save_scenarios,
     save_subjects,
+    writable_dir,
 )
 
 router = APIRouter()
@@ -337,6 +338,7 @@ def refs_page(request: Request, subject_id: str) -> HTMLResponse:
             "directory": str(directory),
             "images": [{"name": p.name, "size": p.stat().st_size} for p in images],
             "exists": directory.is_dir(),
+            "writable": writable_dir(directory),
         },
     )
 
@@ -349,19 +351,38 @@ async def refs_upload(request: Request, subject_id: str) -> RedirectResponse:
         return _flash("/setup", err=f"unknown subject: {subject_id}")
 
     directory = resolve_ref_dir(state.root, subject.ref_dir, subject_id)
-    directory.mkdir(parents=True, exist_ok=True)
+    url = f"/setup/subjects/{subject_id}/refs"
+
+    # Read the multipart body before touching the filesystem. Bailing out
+    # earlier leaves the browser streaming into a closed socket, which surfaces
+    # as "connection was reset" instead of an error message.
     form = await request.form()
+    uploads: list[tuple[str, str, Any]] = []
+    for upload in form.getlist("files"):
+        filename = getattr(upload, "filename", "") or ""
+        suffix = Path(filename).suffix.lower()
+        if suffix not in IMAGE_SUFFIX:
+            continue
+        uploads.append((Path(filename).stem, suffix, upload))
+
+    if not uploads:
+        return _flash(url, err="Keine Bilddatei im Upload (png, jpg, jpeg, webp, bmp).")
+
+    if not writable_dir(directory):
+        return _flash(url, err=_not_writable(directory))
+
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return _flash(url, err=_not_writable(directory, exc))
+
     saved = 0
     try:
-        for upload in form.getlist("files"):
-            filename = getattr(upload, "filename", "") or ""
-            suffix = Path(filename).suffix.lower()
-            if suffix not in IMAGE_SUFFIX:
-                continue
+        for source_stem, suffix, upload in uploads:
             data = await upload.read()
             if not data or len(data) > MAX_UPLOAD:
                 continue
-            stem = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(filename).stem)[:80] or "ref"
+            stem = re.sub(r"[^A-Za-z0-9._-]+", "_", source_stem)[:80] or "ref"
             target = directory / f"{stem}{suffix}"
             counter = 1
             while target.exists():
@@ -369,20 +390,31 @@ async def refs_upload(request: Request, subject_id: str) -> RedirectResponse:
                 counter += 1
             target.write_bytes(data)
             saved += 1
-    except Exception as exc:  # noqa: BLE001 - report upload failures in the UI
-        return _flash(f"/setup/subjects/{subject_id}/refs", err=f"upload failed: {exc}")
+    except OSError as exc:
+        return _flash(url, err=f"Upload fehlgeschlagen: {exc}")
 
-    if saved and not subject.ref_dir:
+    if not saved:
+        return _flash(url, err="Keine der Dateien war lesbar oder unter 40 MB.")
+
+    if not subject.ref_dir:
         subject.ref_dir = str(directory)
         existing = {item.id: item for item in state.project.subjects.values()}
         existing[subject.id] = subject
         save_subjects(state.root, list(existing.values()))
         state.reload()
 
-    return _flash(
-        f"/setup/subjects/{subject_id}/refs",
-        ok=f"{saved} reference image(s) uploaded to {directory}",
+    return _flash(url, ok=f"{saved} reference image(s) uploaded to {directory}")
+
+
+def _not_writable(directory: Path, exc: OSError | None = None) -> str:
+    reason = f" ({exc.strerror})" if exc is not None and exc.strerror else ""
+    return (
+        f"Referenzordner {directory} ist nicht beschreibbar{reason}. "
+        "Meist liegt es am ro-Mount: /datasets ist read-only, /datasets/_refs "
+        "braucht einen eigenen :rw-Mount. Alternativ im Subjekt einen "
+        "beschreibbaren Ordner eintragen."
     )
+
 
 
 @router.post("/setup/subjects/{subject_id}/refs/delete")

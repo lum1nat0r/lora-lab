@@ -17,6 +17,7 @@ def test_compose_contract() -> None:
         ":/app/config",
         ":/app/data",
         ":/datasets:ro",
+        ":/datasets/_refs:rw",
         ":/models:ro",
         ":/fizgig:ro",
         ":/comfy-output:ro",

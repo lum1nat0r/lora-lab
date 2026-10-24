@@ -8,6 +8,15 @@
   {% if not exists %}<span class="err">(Ordner existiert noch nicht)</span>{% endif %}
 </p>
 
+{% if not writable %}
+<div class="flash err">
+  Dieser Ordner ist nicht beschreibbar — Uploads und Löschen schlagen fehl.
+  Der Container mountet <code>/datasets</code> read-only; <code>/datasets/_refs</code>
+  muss zusätzlich mit <code>:rw</code> gemountet werden, oder im Subjekt-Formular
+  ein beschreibbarer Ordner eingetragen werden.
+</div>
+{% endif %}
+
 <div class="cards">
   <div class="card">
     <div class="k">Empfehlung</div>

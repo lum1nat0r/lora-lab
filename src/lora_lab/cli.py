@@ -212,9 +212,11 @@ def _doctor(project: ProjectConfig) -> int:
 
 def check_paths(project: ProjectConfig) -> None:
     from .heldout import contains, count_images
+    from .web.store import default_ref_dir, writable_dir
 
     for subject in project.subjects.values():
-        for kind, value in (("refs", subject.ref_dir), ("train", subject.train_dir)):
+        ref_value = subject.ref_dir or default_ref_dir(project.root, subject.id)
+        for kind, value in (("refs", ref_value), ("train", subject.train_dir)):
             if not value:
                 continue
             path = project.path(value)
@@ -222,6 +224,11 @@ def check_paths(project: ProjectConfig) -> None:
                 print(f"{kind:<11} {subject.id:<16} ok       {count_images(path):>5} images  {path}")
             else:
                 print(f"{kind:<11} {subject.id:<16} MISSING            {path}")
+            if kind == "refs" and not writable_dir(path):
+                print(
+                    f"WARNING     {subject.id}: reference folder is not writable — "
+                    "uploads will fail; mount /datasets/_refs rw or pick another folder"
+                )
         if subject.ref_dir and subject.train_dir:
             if contains(project.path(subject.ref_dir), project.path(subject.train_dir)):
                 print(f"WARNING     {subject.id}: reference and training folder overlap")

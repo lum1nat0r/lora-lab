@@ -30,6 +30,9 @@ services:
       - /mnt/user/appdata/lora-lab/config:/app/config
       - /mnt/user/appdata/lora-lab/data:/app/data
       - /mnt/user/ai/training/datasets:/datasets:ro
+      # held-out references are written by the setup UI, so this subtree must
+      # stay writable even though the datasets share is read-only
+      - /mnt/user/ai/training/datasets/_refs:/datasets/_refs:rw
       - /mnt/user/ai/models:/models:ro
       # Fizgig run history (training parameters, loss logs)
       - /mnt/user/ai/training/fizgig/Fizgig/user_data:/fizgig:ro

@@ -7,6 +7,7 @@ file.
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -210,6 +211,21 @@ def resolve_ref_dir(root: Path, value: str | None, subject_id: str) -> Path:
     else:
         path = Path(default_ref_dir(root, subject_id))
     return path if path.is_absolute() else (Path(root) / path).resolve()
+
+
+def writable_dir(path: Path) -> bool:
+    """True if ``path`` exists and is writable, or could be created.
+
+    The nearest existing ancestor is checked, so a reference folder that does
+    not exist yet is judged by the mount it would live on. A read-only bind
+    mount reports as not writable even for root, because the kernel refuses the
+    write on the filesystem rather than on the permissions.
+    """
+
+    for candidate in (path, *path.parents):
+        if candidate.exists():
+            return candidate.is_dir() and os.access(candidate, os.W_OK)
+    return False
 
 
 def list_ref_images(path: Path) -> list[Path]:

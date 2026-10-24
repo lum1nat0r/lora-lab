@@ -142,6 +142,68 @@ def test_subject_and_reference_upload(web) -> None:
     assert served.headers["content-type"].startswith("image/")
 
 
+def test_upload_to_unwritable_folder_reports_error(web) -> None:
+    """A read-only mount must not kill the request — the body is consumed first."""
+    client, _, tmp_path = web
+    blocker = tmp_path / "blocked"
+    blocker.write_text("not a directory")
+    refs = blocker / "refs"
+
+    response = client.post(
+        "/setup/subjects/save",
+        data={
+            "is_new": "true",
+            "id": "subject_d",
+            "trigger": "subjd",
+            "ref_dir": str(refs),
+            "train_dir": "/datasets/subject_d",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    image = tmp_path / "sample.png"
+    Image.new("RGB", (24, 24), (10, 20, 30)).save(image)
+    with image.open("rb") as fh:
+        response = client.post(
+            "/setup/subjects/subject_d/refs/upload",
+            files={"files": ("sample.png", fh.read(), "image/png")},
+            follow_redirects=False,
+        )
+    assert response.status_code == 303
+    assert "err=" in response.headers["location"]
+    assert "beschreibbar" in response.headers["location"]
+    assert not refs.exists()
+
+    page = client.get("/setup/subjects/subject_d/refs")
+    assert page.status_code == 200
+    assert "nicht beschreibbar" in page.text
+
+
+def test_upload_without_image_files_reports_error(web) -> None:
+    client, _, tmp_path = web
+    response = client.post(
+        "/setup/subjects/save",
+        data={
+            "is_new": "true",
+            "id": "subject_e",
+            "trigger": "subje",
+            "ref_dir": str(tmp_path / "refs" / "subject_e"),
+            "train_dir": "/datasets/subject_e",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    response = client.post(
+        "/setup/subjects/subject_e/refs/upload",
+        files={"files": ("notes.txt", b"not an image", "text/plain")},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert "err=" in response.headers["location"]
+
+
 def test_lora_selection_and_grid(web) -> None:
     client, target, _ = web
     local = target / "config" / "local"
