@@ -320,3 +320,23 @@ def test_arcface_pipeline_with_fake_models(tmp_path: Path) -> None:
     vector = embedder.embed(str(image))
     assert vector == pytest.approx([0.6, 0.8])
     assert len(embedder.detect(str(image))) == 1
+
+
+def test_build_default_scorers_shared_stack(root: Path) -> None:
+    from lora_lab.config import load_project
+    from lora_lab.scorers.run import build_default_scorers
+
+    class FakeJudge:
+        name = "fake"
+        version = "v1"
+
+        def judge(self, image, attributes):
+            return {a.id: True for a in attributes}
+
+    project = load_project(root, use_local=False)
+    scorers, identity_error = build_default_scorers(
+        project, judge=FakeJudge(), identity=False
+    )
+    assert identity_error is None
+    assert [scorer.name for scorer in scorers] == ["health", "adherence"]
+    assert set(scorers[1].attributes_by_scenario) == set(project.scenarios)

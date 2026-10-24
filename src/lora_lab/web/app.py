@@ -37,6 +37,27 @@ def create_app(
     def store() -> Store:
         return Store(state.project.db_path)
 
+    def report_payload(run_id: int | None) -> dict[str, object]:
+        from ..analyze.report import build_report
+
+        db = store()
+        try:
+            # cheap invalidation key: any new/deleted job, image or score
+            # changes one of these three numbers
+            key = (
+                tuple(sorted(db.counts(run_id).items())),
+                db.image_count(),
+                db.score_count(),
+            )
+            cached = state.report_cache.get(run_id)
+            if cached is not None and cached[0] == key:
+                return cached[1]
+            payload = build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
+        finally:
+            db.close()
+        state.report_cache[run_id] = (key, payload)
+        return payload
+
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
@@ -70,15 +91,9 @@ def create_app(
 
     @app.get("/report", response_class=HTMLResponse)
     def report(request: Request, run: str | None = None) -> HTMLResponse:
-        from ..analyze.report import build_report
-
+        payload = report_payload(_run_id_from_name(state, run))
         db = store()
         try:
-            run_id = None
-            if run:
-                row = db.run_by_name(run)
-                run_id = int(row["id"]) if row else None
-            payload = build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
             runs = [dict(r) for r in db.runs()]
         finally:
             db.close()
@@ -90,17 +105,7 @@ def create_app(
 
     @app.get("/api/report")
     def api_report(run: str | None = None) -> dict[str, object]:
-        from ..analyze.report import build_report
-
-        db = store()
-        try:
-            run_id = None
-            if run:
-                row = db.run_by_name(run)
-                run_id = int(row["id"]) if row else None
-            return build_report(db, run_id=run_id, bootstrap=800, stability_draws=300)
-        finally:
-            db.close()
+        return report_payload(_run_id_from_name(state, run))
 
     @app.post("/report/delete-lora")
     async def report_delete_lora(request: Request) -> RedirectResponse:
@@ -191,11 +196,22 @@ def create_app(
     def image(path: str) -> FileResponse:
         root = (state.project.data_dir / "images").resolve()
         target = (state.project.data_dir / path).resolve()
-        if not str(target).startswith(str(root)) or not target.is_file():
+        if not target.is_relative_to(root) or not target.is_file():
             raise HTTPException(status_code=404)
         return FileResponse(target)
 
     return app
+
+
+def _run_id_from_name(state: AppState, run: str | None) -> int | None:
+    if not run:
+        return None
+    db = Store(state.project.db_path)
+    try:
+        row = db.run_by_name(run)
+        return int(row["id"]) if row else None
+    finally:
+        db.close()
 
 
 def serve(project: ProjectConfig, host: str = "127.0.0.1", port: int = 8099) -> None:

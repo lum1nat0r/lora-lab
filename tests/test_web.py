@@ -87,3 +87,31 @@ def test_dashboard_and_report_render(root: Path, tmp_path: Path) -> None:
     assert api_empty["samples"] == 0
     assert api_empty["results"] == []
     assert list((project.data_dir / "images").rglob("*.png")) == []
+
+
+def test_report_payload_is_cached_until_data_changes(root, tmp_path, monkeypatch) -> None:
+    import lora_lab.analyze.report as report_mod
+
+    project = _seed(root, tmp_path)
+    calls = {"n": 0}
+    original = report_mod.build_report
+
+    def counting(store, **kwargs):
+        calls["n"] += 1
+        return original(store, **kwargs)
+
+    monkeypatch.setattr(report_mod, "build_report", counting)
+    client = TestClient(create_app(project))
+    first = client.get("/api/report").json()
+    second = client.get("/api/report").json()
+    assert calls["n"] == 1
+    assert second == first
+
+    # a new score invalidates the cache
+    store = Store(project.db_path)
+    store.add_score(1, "face_count", "v1", "critical", 1.0, {})
+    store.commit()
+    store.close()
+    third = client.get("/api/report").json()
+    assert calls["n"] == 2
+    assert third["total_images"] == first["total_images"]

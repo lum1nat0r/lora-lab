@@ -62,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
     score.add_argument("--max-side", type=int, default=None, help="downscale images before sending")
     score.add_argument("--limit", type=int, default=None)
     score.add_argument("--target-megapixels", type=float, default=1.0)
+    score.add_argument(
+        "--workers", type=int, default=4, help="parallel scoring threads (VLM requests)"
+    )
     score.add_argument("--quiet", action="store_true")
 
     report = sub.add_parser("report", help="rank LoRAs from stored scores")
@@ -217,7 +220,7 @@ def _doctor(project: ProjectConfig) -> int:
     sample = jobs[0] if jobs else None
     if sample is not None:
         try:
-            prompt, job_hash = build_prompt(sample, project, api, object_info=object_info)
+            prompt, job_hash = build_prompt(sample, project, api)
         except WorkflowError as exc:
             print(f"bindings    FAILED: {exc}", file=sys.stderr)
             return 2
@@ -464,29 +467,26 @@ def _status(project: ProjectConfig) -> int:
 
 
 def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
-    from .scorers.adherence import AdherenceScorer, JsonVerdicts
-    from .scorers.defects import HealthScorer
-    from .scorers.run import score_run
+    from .scorers.adherence import JsonVerdicts
+    from .scorers.run import build_default_scorers, score_run
 
     if not project.db_path.exists():
         print("no database yet — run `lora-lab generate` first", file=sys.stderr)
         return 2
 
-    scorers = [HealthScorer(target_megapixels=args.target_megapixels)]
-    attributes = {s.id: s.attributes for s in project.scenarios.values()}
-
     vlm_url = args.vlm_url or project.vlm_url
     vlm_model = args.vlm_model or project.vlm_model
     vlm_api_key = args.vlm_api_key or project.vlm_api_key
 
-    if args.verdicts and args.vlm_url:
-        print("use either --verdicts or --vlm-url, not both", file=sys.stderr)
+    if args.verdicts and vlm_url:
+        print("use either --verdicts or a VLM endpoint (--vlm-url or project.yaml), not both",
+              file=sys.stderr)
         return 2
 
     vlm_judge = None
+    judge = None
     if args.verdicts:
         judge = JsonVerdicts(Path(args.verdicts))
-        scorers.append(AdherenceScorer(judge, attributes))
     elif vlm_url:
         if not vlm_model:
             print("--vlm-url needs --vlm-model", file=sys.stderr)
@@ -501,57 +501,18 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
                 max_side=args.max_side,
             )
         )
-        scorers.append(AdherenceScorer(vlm_judge, attributes))
+        judge = vlm_judge
 
-    if args.identity:
-        from .scorers.defects import FaceCountScorer
-        from .scorers.identity import (
-            ArcFaceEmbedder,
-            IdentityScorer,
-            build_references,
-            build_training_embeddings,
-            calibrate_from_references,
-        )
-
-        try:
-            embedder = ArcFaceEmbedder()
-        except RuntimeError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-
-        # objective multi-face detection comes for free with the detector
-        scorers.append(FaceCountScorer(embedder))
-
-        directories = {
-            subject.id: project.path(subject.ref_dir)
-            for subject in project.subjects.values()
-            if subject.ref_dir and project.path(subject.ref_dir).is_dir()
-        }
-        train_dirs = {
-            subject.id: project.path(subject.train_dir)
-            for subject in project.subjects.values()
-            if subject.train_dir and project.path(subject.train_dir).is_dir()
-        }
-        if not directories:
-            print(
-                "identity scoring needs at least one subject with a reference folder;"
-                " face counting still runs",
-                file=sys.stderr,
-            )
-        else:
-            cache_path = project.data_dir / "ref_embeddings.json"
-            references = build_references(directories, embedder, cache_path=cache_path)
-            training = (
-                build_training_embeddings(train_dirs, embedder, cache_path=cache_path)
-                if train_dirs
-                else {}
-            )
-            calibration = calibrate_from_references(references)
-            print(
-                f"calibration  slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
-                f" genuine={calibration.genuine} impostor={calibration.impostor}"
-            )
-            scorers.append(IdentityScorer(references, calibration, embedder, training=training))
+    scorers, identity_error = build_default_scorers(
+        project,
+        log=print,
+        judge=judge,
+        identity=args.identity,
+        target_megapixels=args.target_megapixels,
+    )
+    if identity_error is not None:
+        print(str(identity_error), file=sys.stderr)
+        return 2
 
     with Store(project.db_path) as store:
         run_id = None
@@ -574,6 +535,7 @@ def _score(project: ProjectConfig, args: argparse.Namespace) -> int:
             limit=args.limit,
             skip_existing=args.only_missing,
             on_progress=progress,
+            workers=args.workers,
         )
 
     if vlm_judge is not None:

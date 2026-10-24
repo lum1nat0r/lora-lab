@@ -13,8 +13,6 @@ from ..config import load_project
 from ..db import Store
 from ..grid import expand
 from ..runner import run_jobs
-from ..scorers.defects import HealthScorer
-from ..scorers.run import score_run
 
 
 class Cancelled(Exception):
@@ -140,42 +138,26 @@ class RunManager:
             store.close()
 
     def score(self, only_missing: bool = True) -> None:
-        project = load_project(self.state.root)
-        scorers = [HealthScorer()]
-        attributes = {scenario.id: scenario.attributes for scenario in project.scenarios.values()}
+        from ..scorers.run import build_default_scorers, score_run
 
+        project = load_project(self.state.root)
         vlm_url = project.vlm_url or os.environ.get("VLM_JUDGE_URL")
         vlm_model = project.vlm_model or os.environ.get("VLM_JUDGE_MODEL")
         vlm_api_key = project.vlm_api_key or os.environ.get("VLM_API_KEY") or None
         judge = None
         if vlm_url and vlm_model:
-            from ..scorers.adherence import AdherenceScorer
             from ..scorers.vlm import VLMJudge, VLMSettings
 
             judge = VLMJudge(
-                VLMSettings(
-                    base_url=vlm_url,
-                    model=vlm_model,
-                    api_key=vlm_api_key,
-                )
+                VLMSettings(base_url=vlm_url, model=vlm_model, api_key=vlm_api_key)
             )
-            scorers.append(AdherenceScorer(judge, attributes))
             self._append(f"adherence judge: {vlm_model} at {vlm_url}")
         else:
             self._append("no VLM configured (VLM_JUDGE_URL / VLM_JUDGE_MODEL) — quality only")
 
-        from ..scorers.defects import FaceCountScorer
-        from ..scorers.identity import ArcFaceEmbedder
-
-        try:
-            embedder = ArcFaceEmbedder()
-        except RuntimeError as exc:
-            self._append(f"identity skipped: {exc}")
-        else:
-            scorers.append(FaceCountScorer(embedder))
-            identity = self._identity_scorer(project, embedder)
-            if identity is not None:
-                scorers.append(identity)
+        scorers, identity_error = build_default_scorers(project, judge=judge, log=self._append)
+        if identity_error is not None:
+            self._append(f"identity skipped: {identity_error}")
 
         def on_progress(message: str) -> None:
             self.log.append(message)
@@ -191,6 +173,7 @@ class RunManager:
                 scorers,
                 skip_existing=only_missing,
                 on_progress=on_progress,
+                workers=4,
             )
             self._append(" · ".join(f"{axis} {value}" for axis, value in sorted(counts.items())))
         finally:
@@ -202,39 +185,3 @@ class RunManager:
                     f"{stats['refused']} refused · {stats['errors']} errors"
                 )
                 judge.close()
-
-    def _identity_scorer(self, project, embedder):
-        from ..scorers.identity import (
-            IdentityScorer,
-            build_references,
-            build_training_embeddings,
-            calibrate_from_references,
-        )
-
-        directories = {}
-        train_dirs = {}
-        for subject in project.subjects.values():
-            if subject.ref_dir:
-                path = project.path(subject.ref_dir)
-                if path.is_dir():
-                    directories[subject.id] = path
-            if subject.train_dir:
-                tpath = project.path(subject.train_dir)
-                if tpath.is_dir():
-                    train_dirs[subject.id] = tpath
-        if not directories:
-            self._append("identity skipped: need a reference folder for at least one subject")
-            return None
-        cache_path = project.data_dir / "ref_embeddings.json"
-        self._append(f"loading/building reference embeddings for {len(directories)} subject(s)")
-        references = build_references(directories, embedder, cache_path=cache_path)
-        training = (
-            build_training_embeddings(train_dirs, embedder, cache_path=cache_path)
-            if train_dirs
-            else {}
-        )
-        calibration = calibrate_from_references(references)
-        self._append(
-            f"calibration: slope={calibration.slope:.2f} intercept={calibration.intercept:.2f}"
-        )
-        return IdentityScorer(references, calibration, embedder, training=training)

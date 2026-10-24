@@ -40,8 +40,6 @@ def build_prompt(
     job: Job,
     project: ProjectConfig,
     api: dict[str, Any],
-    *,
-    object_info: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Render one job into an API prompt plus its content hash."""
 
@@ -100,7 +98,7 @@ def run_jobs(
     planned = 0
     workflow_path = project.path(project.grid.workflow_for(project.grid.profile))
     raw = load_workflow(workflow_path)
-    api = ui_to_api(raw) if is_ui_format(raw) else raw
+    api = ui_to_api(raw, object_info) if is_ui_format(raw) else raw
 
     images_root = project.data_dir / "images"
     images_root.mkdir(parents=True, exist_ok=True)
@@ -109,7 +107,7 @@ def run_jobs(
         if should_cancel is not None and should_cancel():
             break
         stats.total += 1
-        prompt, job_hash = build_prompt(job, project, api, object_info=object_info)
+        prompt, job_hash = build_prompt(job, project, api)
 
         if not dry_run and store.reuse_completed_job(run_id, job_hash, job, prompt):
             stats.skipped += 1
@@ -129,6 +127,9 @@ def run_jobs(
 
         job_id = store.add_job(run_id, job_hash, job, prompt)
         store.set_status(job_id, "running")
+        # commit each burst right away: the SQLite write lock must not be held
+        # while ComfyUI renders (the web UI edits config in parallel)
+        store.commit()
 
         attempt = 0
         while True:
@@ -142,15 +143,18 @@ def run_jobs(
                 )
                 _save_outputs(project, store, job_id, job, entry, images_root, client)
                 store.set_status(job_id, "done", prompt_id=prompt_id)
+                store.commit()
                 stats.done += 1
                 _progress(on_progress, f"done  {job.label()}")
                 break
             except (ComfyError, OSError) as exc:
                 if should_cancel is not None and should_cancel():
                     store.set_status(job_id, "pending", error="cancelled")
+                    store.commit()
                     return stats
                 if attempt > retries:
                     store.set_status(job_id, "failed", error=str(exc))
+                    store.commit()
                     stats.failed += 1
                     _progress(on_progress, f"FAIL  {job.label()}: {exc}")
                     break

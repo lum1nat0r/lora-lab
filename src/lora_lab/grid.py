@@ -102,7 +102,3 @@ def summary(jobs: Iterable[Job]) -> dict[str, int]:
         counts[job.condition] = counts.get(job.condition, 0) + 1
     counts["total"] = sum(counts.values())
     return counts
-
-
-def estimate_seconds(jobs: int, seconds_per_image: float) -> float:
-    return jobs * seconds_per_image

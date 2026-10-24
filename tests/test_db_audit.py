@@ -49,6 +49,64 @@ def test_store_roundtrip(tmp_path: Path) -> None:
     store.close()
 
 
+def _shared_image_store(tmp_path: Path) -> tuple[Store, Path, Path, int, int]:
+    """Two runs whose job is reused, so both point at the same file."""
+
+    data = tmp_path / "data"
+    (data / "images").mkdir(parents=True)
+    image = data / "images" / "shared.png"
+    image.write_bytes(b"png")
+
+    store = Store(tmp_path / "db.sqlite")
+    run_one = store.upsert_run("one", "abc", "fast", {})
+    job = Job(
+        subject="c",
+        lora_id="l",
+        epoch=1,
+        strength=1.0,
+        scenario="s",
+        seed=1,
+        lora_file="f.safetensors",
+    )
+    job_id = store.add_job(run_one, "hash", job, {})
+    store.add_image(job_id, 0, "shared.png", "", "output", "images/shared.png", "sha", 8, 4, 4)
+    store.set_status(job_id, "done", prompt_id="p")
+    store.commit()
+    run_two = store.upsert_run("two", "abc", "fast", {})
+    assert store.reuse_completed_job(run_two, "hash", job, {})
+    store.commit()
+    return store, data, image, run_one, run_two
+
+
+def test_delete_run_keeps_files_shared_with_other_runs(tmp_path: Path) -> None:
+    store, data, image, run_one, run_two = _shared_image_store(tmp_path)
+
+    # deleting the source run must not destroy the file the reuse still uses
+    stats = store.delete_run(data, run_id=run_one)
+    assert stats == {"jobs": 1, "files": 0}
+    assert image.exists()
+    assert store.image_count() == 1
+
+    # the last referencing run takes the file with it
+    stats = store.delete_run(data, run_id=run_two)
+    assert stats == {"jobs": 1, "files": 1}
+    assert not image.exists()
+    store.close()
+
+
+def test_delete_lora_keeps_files_shared_with_other_runs(tmp_path: Path) -> None:
+    store, data, image, run_one, run_two = _shared_image_store(tmp_path)
+
+    stats = store.delete_lora(data, "l", run_id=run_one)
+    assert stats == {"jobs": 1, "files": 0}
+    assert image.exists()
+
+    stats = store.delete_lora(data, "l", run_id=run_two)
+    assert stats == {"jobs": 1, "files": 1}
+    assert not image.exists()
+    store.close()
+
+
 def test_audit_counts_and_duplicates(tmp_path: Path) -> None:
     make_image(tmp_path / "a.png", color=(1, 2, 3))
     make_image(tmp_path / "b.png", color=(1, 2, 3))

@@ -113,12 +113,6 @@ class ComfyClient:
             json={"unload_models": unload_models, "free_memory": True},
         )
 
-    def queue_remaining(self) -> int:
-        response = self._client.get("/queue")
-        response.raise_for_status()
-        data = response.json()
-        return len(data.get("queue_running") or []) + len(data.get("queue_pending") or [])
-
 
 def _format_error(response: httpx.Response) -> str:
     try:

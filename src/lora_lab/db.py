@@ -137,7 +137,14 @@ class Store:
         )
 
     def close(self) -> None:
-        self.conn.close()
+        # commit as a safety net: an open transaction would be rolled back
+        try:
+            self.conn.commit()
+        finally:
+            self.conn.close()
+
+    def commit(self) -> None:
+        self.conn.commit()
 
     def __enter__(self) -> Store:
         return self
@@ -187,7 +194,7 @@ class Store:
                 now,
             ),
         )
-        self.conn.commit()
+        # no commit here: callers commit once per job/batch instead of per row
         if cur.rowcount == 0:
             row = self.conn.execute(
                 "SELECT id FROM jobs WHERE run_id = ? AND job_hash = ?", (run_id, job_hash)
@@ -276,7 +283,6 @@ class Store:
             " WHERE id=?",
             (status, prompt_id, error, time.time(), job_id),
         )
-        self.conn.commit()
 
     def pending_jobs(self, run_id: int | None = None) -> list[sqlite3.Row]:
         if run_id is None:
@@ -320,7 +326,6 @@ class Store:
                 time.time(),
             ),
         )
-        self.conn.commit()
 
     # -- scores ------------------------------------------------------------
     def add_score(
@@ -337,7 +342,6 @@ class Store:
             " created_at) VALUES (?,?,?,?,?,?,?)",
             (image_id, scorer, version, axis, value, json.dumps(meta or {}), time.time()),
         )
-        self.conn.commit()
 
     def has_axes(
         self, image_id: int, scorer: str, version: str, axes: tuple[str, ...]
@@ -412,6 +416,10 @@ class Store:
         row = self.conn.execute("SELECT COUNT(*) AS n FROM images").fetchone()
         return int(row["n"]) if row else 0
 
+    def score_count(self) -> int:
+        row = self.conn.execute("SELECT COUNT(*) AS n FROM scores").fetchone()
+        return int(row["n"]) if row else 0
+
     def recent_images(self, limit: int = 24) -> Iterable[sqlite3.Row]:
         return self.conn.execute(
             "SELECT images.*, jobs.subject, jobs.lora_id, jobs.scenario, jobs.seed,"
@@ -431,7 +439,7 @@ class Store:
             if not rel:
                 continue
             target = (Path(data_dir) / rel).resolve()
-            if not str(target).startswith(str(root) + "/") or not target.is_file():
+            if not target.is_relative_to(root) or not target.is_file():
                 continue
             try:
                 target.unlink()
@@ -446,6 +454,21 @@ class Store:
                     break
                 parent = parent.parent
         return removed
+
+    def _shared_paths(self, where: str, params: list[Any]) -> set[str]:
+        """Paths of images whose jobs survive the delete about to happen.
+
+        Reused jobs give two runs image rows with the same file path; a file
+        must only be unlinked when no surviving row still points at it.
+        """
+
+        rows = self.conn.execute(
+            "SELECT DISTINCT images.path FROM images"
+            " JOIN jobs ON jobs.id = images.job_id"
+            f" WHERE NOT ({where})",
+            params,
+        )
+        return {str(row["path"]) for row in rows}
 
     def delete_lora(
         self,
@@ -473,7 +496,9 @@ class Store:
             f"SELECT images.path FROM images JOIN jobs ON jobs.id = images.job_id WHERE {where}",
             params,
         ).fetchall()
-        files = self._unlink_image_paths(data_dir, [str(r["path"]) for r in rows])
+        doomed = {str(r["path"]) for r in rows}
+        keep = self._shared_paths(where, params) if doomed else set()
+        files = self._unlink_image_paths(data_dir, sorted(doomed - keep))
 
         cur = self.conn.execute(f"DELETE FROM jobs WHERE {where}", params)
         jobs_deleted = cur.rowcount
@@ -495,7 +520,9 @@ class Store:
             "SELECT images.path FROM images JOIN jobs ON jobs.id = images.job_id WHERE jobs.run_id = ?",
             (run_id,),
         ).fetchall()
-        files = self._unlink_image_paths(data_dir, [str(r["path"]) for r in rows])
+        doomed = {str(r["path"]) for r in rows}
+        keep = self._shared_paths("jobs.run_id = ?", [run_id]) if doomed else set()
+        files = self._unlink_image_paths(data_dir, sorted(doomed - keep))
         cur = self.conn.execute("DELETE FROM jobs WHERE run_id = ?", (run_id,))
         jobs_deleted = cur.rowcount
         self.conn.execute("DELETE FROM runs WHERE id = ?", (run_id,))

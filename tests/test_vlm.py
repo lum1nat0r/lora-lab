@@ -95,6 +95,23 @@ def test_http_error_does_not_raise(tmp_path: Path) -> None:
     assert judge.stats["errors"] == 1
 
 
+def test_transient_transport_error_is_retried(tmp_path: Path) -> None:
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.ConnectError("connection reset")
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": '{"a": true, "b": false}'}}]}
+        )
+
+    judge, image = judge_with(handler, tmp_path)
+    assert judge.judge(image, ATTRS) == {"a": True, "b": False}
+    assert calls["n"] == 2
+    assert judge.stats == {"requests": 1, "parsed": 1, "refused": 0, "errors": 0}
+
+
 def test_endpoint_normalisation() -> None:
     assert VLMSettings("http://x:8000/v1", "m").endpoint() == "http://x:8000/v1/chat/completions"
     assert (

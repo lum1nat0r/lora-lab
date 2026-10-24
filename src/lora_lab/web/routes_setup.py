@@ -477,11 +477,11 @@ def browse(request: Request, path: str = "") -> dict[str, Any]:
         if child.name.startswith("."):
             continue
         if child.is_dir():
-            dirs.append({"name": child.name, "path": str(child)})
+            # cap the folder list only; the image count stays complete
+            if len(dirs) < 300:
+                dirs.append({"name": child.name, "path": str(child)})
         elif child.suffix.lower() in IMAGE_SUFFIX:
             images += 1
-        if len(dirs) >= 300:
-            break
 
     parent = str(target.parent) if any(root in target.parents for root in roots) else None
     return {"path": str(target), "dirs": dirs, "parent": parent, "images": images, "roots": []}

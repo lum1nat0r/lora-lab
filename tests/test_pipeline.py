@@ -80,3 +80,35 @@ def test_score_and_report_roundtrip(root: Path, tmp_path: Path) -> None:
     assert "a" in table and "b" in table
 
     store.close()
+
+
+def test_score_run_parallel_workers(root: Path, tmp_path: Path) -> None:
+    project = _project(root, tmp_path)
+    store = Store(project.db_path)
+    run_id = store.upsert_run("parallel", "hash", "fast", {})
+    for i in range(6):
+        job = Job(
+            subject="subject_a",
+            lora_id="lora_a",
+            epoch=20,
+            strength=1.0,
+            scenario="still_life",
+            seed=i,
+            lora_file="lora.safetensors",
+        )
+        prompt = {"7": {"class_type": "KSampler", "inputs": {}}}
+        job_id = store.add_job(run_id, f"hash-{i}", job, prompt)
+        relative = f"images/{job.prefix()}/frame.png"
+        target = project.data_dir / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        Image.effect_noise((64, 64), 100 + i).convert("RGB").save(target)
+        store.add_image(job_id, 0, "frame.png", "", "output", relative, "sha", 64, 64, 1)
+
+    counts = score_run(project, store, [HealthScorer()], run_id=run_id, workers=3)
+    assert counts == {"images": 6, "quality": 6}
+
+    # batch commits must be durable for a fresh connection
+    store.close()
+    fresh = Store(project.db_path)
+    assert fresh.score_count() == 6
+    fresh.close()

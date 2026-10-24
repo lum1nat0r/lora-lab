@@ -15,6 +15,8 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import threading
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,6 +76,12 @@ class VLMJudge:
             headers["Authorization"] = f"Bearer {settings.api_key}"
         self._client = client or httpx.Client(timeout=settings.timeout, headers=headers)
         self.stats = {"requests": 0, "parsed": 0, "refused": 0, "errors": 0}
+        # scoring runs in a thread pool; plain += can lose counts
+        self._stats_lock = threading.Lock()
+
+    def _bump(self, key: str) -> None:
+        with self._stats_lock:
+            self.stats[key] += 1
 
     def close(self) -> None:
         if self._owns_client:
@@ -134,25 +142,36 @@ class VLMJudge:
             **self.settings.extra_body,
         }
 
-        self.stats["requests"] += 1
-        try:
-            response = self._client.post(self.settings.endpoint(), json=body)
-            response.raise_for_status()
-            payload = response.json()
-        except (httpx.HTTPError, json.JSONDecodeError):
-            self.stats["errors"] += 1
-            return {a.id: None for a in attributes}
+        self._bump("requests")
+        payload = None
+        for attempt in (0, 1):
+            try:
+                response = self._client.post(self.settings.endpoint(), json=body)
+                response.raise_for_status()
+                payload = response.json()
+                break
+            except (httpx.HTTPError, json.JSONDecodeError) as exc:
+                # one retry on transient faults; a 4xx is the server's verdict
+                transient = isinstance(exc, httpx.TransportError) or (
+                    isinstance(exc, httpx.HTTPStatusError)
+                    and exc.response.status_code >= 500
+                )
+                if attempt == 0 and transient:
+                    time.sleep(1.0)
+                    continue
+                self._bump("errors")
+                return {a.id: None for a in attributes}
 
         content = _message_text(payload)
         parsed = _parse_json(content)
         if parsed is None:
             if _looks_like_refusal(content):
-                self.stats["refused"] += 1
+                self._bump("refused")
             else:
-                self.stats["errors"] += 1
+                self._bump("errors")
             return {a.id: None for a in attributes}
 
-        self.stats["parsed"] += 1
+        self._bump("parsed")
         return {a.id: _coerce(parsed.get(a.id)) for a in attributes}
 
     def _data_url(self, path: str) -> str:

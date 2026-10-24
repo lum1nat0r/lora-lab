@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -323,6 +324,8 @@ class ArcFaceEmbedder:
                 str(yunet), "", (640, 640), 0.6, 0.3, 5000
             )
         self._detector = detector
+        # scoring can run in a thread pool; YuNet is not safe to share
+        self._lock = threading.Lock()
         self._cache_path: str | None = None
         self._cache = None
 
@@ -354,11 +357,13 @@ class ArcFaceEmbedder:
         return self._cache
 
     def detect(self, path: str) -> list[Face]:
-        _image, faces = self._read(path)
+        with self._lock:
+            _image, faces = self._read(path)
         return faces
 
     def embed(self, path: str) -> list[float] | None:
-        image, faces = self._read(path)
+        with self._lock:
+            image, faces = self._read(path)
         if image is None or not faces:
             return None
         face = max(faces, key=lambda item: item.area)

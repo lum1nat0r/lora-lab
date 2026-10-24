@@ -22,6 +22,9 @@ class AppState:
         self._notified_scenarios: set[str] = set()
         self._collect_notices(project)
         self.runner = RunManager(self)
+        # report payload per run_id, keyed by (counts, images, scores);
+        # see report_payload in web/app.py
+        self.report_cache: dict[int | None, tuple[tuple, dict]] = {}
 
     def reload(self) -> None:
         self.project = self._reload_fn()
