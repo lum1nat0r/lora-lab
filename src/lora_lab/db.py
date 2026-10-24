@@ -356,20 +356,31 @@ class Store:
         ).fetchone()
         return bool(row) and int(row["n"]) == len(axes)
 
-    def images_for_run(self, run_id: int | None = None) -> list[sqlite3.Row]:
-        if run_id is None:
-            query = (
-                "SELECT images.*, jobs.subject, jobs.lora_id, jobs.epoch, jobs.strength,"
-                " jobs.scenario, jobs.seed, jobs.condition FROM images"
-                " JOIN jobs ON jobs.id = images.job_id ORDER BY images.id"
-            )
-            return list(self.conn.execute(query))
+    def images_for_run(
+        self,
+        run_id: int | None = None,
+        *,
+        lora_id: str | None = None,
+        epoch: int | None = None,
+        strength: float | None = None,
+    ) -> list[sqlite3.Row]:
+        clauses, params = [], []
+        for column, value in (
+            ("jobs.run_id", run_id),
+            ("jobs.lora_id", lora_id),
+            ("jobs.epoch", epoch),
+            ("jobs.strength", strength),
+        ):
+            if value is not None:
+                clauses.append(f"{column} = ?")
+                params.append(value)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
         query = (
             "SELECT images.*, jobs.subject, jobs.lora_id, jobs.epoch, jobs.strength,"
             " jobs.scenario, jobs.seed, jobs.condition FROM images"
-            " JOIN jobs ON jobs.id = images.job_id WHERE jobs.run_id = ? ORDER BY images.id"
+            f" JOIN jobs ON jobs.id = images.job_id{where} ORDER BY images.id"
         )
-        return list(self.conn.execute(query, (run_id,)))
+        return list(self.conn.execute(query, params))
 
     def scored_images(self, run_id: int | None = None) -> list[sqlite3.Row]:
         where = "WHERE j.run_id = ?" if run_id is not None else ""
@@ -419,6 +430,10 @@ class Store:
     def score_count(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) AS n FROM scores").fetchone()
         return int(row["n"]) if row else 0
+
+    def score_max_created_at(self) -> float:
+        row = self.conn.execute("SELECT MAX(created_at) AS m FROM scores").fetchone()
+        return float(row["m"]) if row and row["m"] is not None else 0.0
 
     def recent_images(self, limit: int = 24) -> Iterable[sqlite3.Row]:
         return self.conn.execute(

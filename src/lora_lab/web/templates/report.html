@@ -141,6 +141,13 @@
           <button type="button" class="btn-sm" onclick="toggleOpGallery('gal-{{ loop.index }}')">
             {{ r.images|length }} Bilder ▾
           </button>
+          <form method="post" action="/report/rescore-lora" style="margin:0">
+            <input type="hidden" name="lora_id" value="{{ r.lora_id }}">
+            <input type="hidden" name="epoch" value="{{ r.epoch }}">
+            <input type="hidden" name="strength" value="{{ r.strength }}">
+            <input type="hidden" name="run" value="{{ selected or '' }}">
+            <button type="submit" class="btn-sm" title="Alle Bilder dieser Einstellung mit den aktuellen Scoring-Modellen neu bewerten (nützlich nach Änderungen am Referenz-Set)">Neu bewerten</button>
+          </form>
           <form method="post" action="/report/delete-lora" style="margin:0"
                 onsubmit="return confirm('Generierte Bilder und Ergebnisse für {{ r.lora_id }} (ep{{ r.epoch }}, s{{ '%g'|format(r.strength) }}) von der Festplatte löschen?')">
             <input type="hidden" name="lora_id" value="{{ r.lora_id }}">

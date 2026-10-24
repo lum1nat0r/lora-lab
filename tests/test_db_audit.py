@@ -49,6 +49,23 @@ def test_store_roundtrip(tmp_path: Path) -> None:
     store.close()
 
 
+def test_images_for_run_filters_by_lora_setting(tmp_path: Path) -> None:
+    store = Store(tmp_path / "db.sqlite")
+    run_id = store.upsert_run("r", "abc", "fast", {})
+    for i, (lora, epoch, strength) in enumerate([("a", 1, 1.0), ("a", 2, 1.0), ("b", 1, 0.8)]):
+        job = Job(subject="c", lora_id=lora, epoch=epoch, strength=strength,
+                  scenario="s", seed=1, lora_file="f.safetensors")
+        job_id = store.add_job(run_id, f"h{i}", job, {})
+        store.add_image(job_id, 0, f"{i}.png", "", "output", f"images/{i}.png", "sha", 8, 4, 4)
+
+    assert len(store.images_for_run()) == 3
+    assert len(store.images_for_run(lora_id="a")) == 2
+    rows = store.images_for_run(run_id, lora_id="a", epoch=2, strength=1.0)
+    assert [r["epoch"] for r in rows] == [2]
+    assert store.images_for_run(lora_id="b", strength=1.0) == []
+    store.close()
+
+
 def _shared_image_store(tmp_path: Path) -> tuple[Store, Path, Path, int, int]:
     """Two runs whose job is reused, so both point at the same file."""
 

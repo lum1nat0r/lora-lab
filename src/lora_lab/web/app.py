@@ -48,6 +48,7 @@ def create_app(
                 tuple(sorted(db.counts(run_id).items())),
                 db.image_count(),
                 db.score_count(),
+                db.score_max_created_at(),
             )
             cached = state.report_cache.get(run_id)
             if cached is not None and cached[0] == key:
@@ -144,6 +145,49 @@ def create_app(
 
         params: dict[str, str] = {
             "ok": f"{lora_id} gelöscht ({stats['files']} Bilder, {stats['jobs']} Jobs entfernt)"
+        }
+        if run_name:
+            params["run"] = run_name
+        return RedirectResponse("/report?" + urlencode(params), status_code=303)
+
+    @app.post("/report/rescore-lora")
+    async def report_rescore_lora(request: Request) -> RedirectResponse:
+        if state.runner.running():
+            return RedirectResponse(
+                "/report?" + urlencode({"err": "Lauf aktiv – bitte erst stoppen"}),
+                status_code=303,
+            )
+        form = await request.form()
+        lora_id = str(form.get("lora_id", "")).strip()
+        run_name = str(form.get("run", "")).strip() or None
+        raw_epoch = str(form.get("epoch", "")).strip()
+        raw_strength = str(form.get("strength", "")).strip()
+        epoch = int(raw_epoch) if raw_epoch else None
+        strength = float(raw_strength) if raw_strength else None
+
+        if not lora_id:
+            return RedirectResponse("/report?" + urlencode({"err": "lora_id fehlt"}), status_code=303)
+
+        run_id = _run_id_from_name(state, run_name)
+        if run_name and run_id is None:
+            return RedirectResponse(
+                "/report?" + urlencode({"err": f"Run '{run_name}' nicht gefunden"}),
+                status_code=303,
+            )
+
+        query_id = "" if lora_id.endswith(":base") else lora_id
+        try:
+            state.runner.start(
+                "score", state.runner.score, False, query_id, epoch, strength, run_id
+            )
+        except RuntimeError as exc:
+            return RedirectResponse("/report?" + urlencode({"err": str(exc)}), status_code=303)
+
+        params: dict[str, str] = {
+            "ok": (
+                f"Neubewertung von {lora_id} (ep{epoch}, "
+                f"s{strength:g}) gestartet – Seite nach Abschluss neu laden"
+            )
         }
         if run_name:
             params["run"] = run_name

@@ -96,6 +96,9 @@ def score_run(
     scorers: Iterable[Scorer],
     *,
     run_id: int | None = None,
+    lora_id: str | None = None,
+    epoch: int | None = None,
+    strength: float | None = None,
     limit: int | None = None,
     skip_existing: bool = False,
     on_progress: Callable[[str], None] | None = None,
@@ -109,7 +112,7 @@ def score_run(
     """
 
     scorer_list = list(scorers)
-    rows = store.images_for_run(run_id)
+    rows = store.images_for_run(run_id, lora_id=lora_id, epoch=epoch, strength=strength)
     counts: dict[str, int] = {}
     seen = 0
     batch = max(workers * 4, 1)

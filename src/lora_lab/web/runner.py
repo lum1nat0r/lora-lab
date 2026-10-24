@@ -137,7 +137,14 @@ class RunManager:
             client.close()
             store.close()
 
-    def score(self, only_missing: bool = True) -> None:
+    def score(
+        self,
+        only_missing: bool = True,
+        lora_id: str | None = None,
+        epoch: int | None = None,
+        strength: float | None = None,
+        run_id: int | None = None,
+    ) -> None:
         from ..scorers.run import build_default_scorers, score_run
 
         project = load_project(self.state.root)
@@ -166,11 +173,19 @@ class RunManager:
 
         store = Store(project.db_path)
         try:
-            self.progress["total"] = len(store.images_for_run(None))
+            self.progress["total"] = len(
+                store.images_for_run(
+                    run_id, lora_id=lora_id, epoch=epoch, strength=strength
+                )
+            )
             counts = score_run(
                 project,
                 store,
                 scorers,
+                run_id=run_id,
+                lora_id=lora_id,
+                epoch=epoch,
+                strength=strength,
                 skip_existing=only_missing,
                 on_progress=on_progress,
                 workers=4,

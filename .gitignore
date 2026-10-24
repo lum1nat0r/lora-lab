@@ -26,3 +26,6 @@ config/local/
 .DS_Store
 .idea/
 .vscode/
+
+# repowise owner-digest key (local)
+.repowise/events.key
