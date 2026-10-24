@@ -117,6 +117,9 @@ class Calibration:
         return cls(**{k: data[k] for k in ("slope", "intercept", "genuine", "impostor")})
 
 
+SAME_PERSON_CENTROID = 0.5
+
+
 @dataclass
 class SubjectReferences:
     """Reference embeddings per subject, plus the impostor pool."""
@@ -141,13 +144,19 @@ class SubjectReferences:
         return out
 
     def impostor_scores(self) -> list[float]:
-        """Every reference against every *other* subject's centroid."""
+        """Every reference against every subject centroid of a *different person*.
+
+        Subjects are datasets, not people: several subjects often share one
+        person (and even one ref folder). Those pairs are genuine, not impostor.
+        """
 
         centers = self.centroids()
         out: list[float] = []
         for name, vectors in self.embeddings.items():
+            own = centers[name]
             for other, center in centers.items():
-                if other == name:
+                # ArcFace centroids of different people sit near 0, of one person near 1
+                if other == name or cosine(own, center) > SAME_PERSON_CENTROID:
                     continue
                 out.extend(cosine(vec, center) for vec in vectors)
         return out

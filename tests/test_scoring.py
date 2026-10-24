@@ -82,6 +82,19 @@ def test_reference_scores() -> None:
     assert calibration.probability(min(genuine)) > calibration.probability(max(impostor))
 
 
+def test_impostor_scores_skip_subjects_of_the_same_person() -> None:
+    refs = SubjectReferences()
+    for subject in ("a_v1", "a_v2"):  # two datasets, one person
+        refs.add(subject, [1.0, 0.0])
+        refs.add(subject, [0.9, 0.1])
+    refs.add("b", [0.0, 1.0])
+    refs.add("b", [0.1, 0.9])
+    impostor = refs.impostor_scores()
+    assert impostor and max(impostor) < 0.5
+    calibration = Calibration.fit(refs.genuine_scores(), impostor)
+    assert calibration.probability(0.9) > 0.8
+
+
 def test_identity_scorer_handles_missing_face() -> None:
     refs = SubjectReferences()
     refs.add("a", [1.0, 0.0])

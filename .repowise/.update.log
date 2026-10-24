@@ -1,0 +1,45 @@
+
+--- post-commit hook fired at Sat Oct 24 06:40:59 PM CEST 2026 for HEAD 2db56a60359ba12593cc65e102b333ac487aea46 ---
+repowise update · lora-lab
+89a2dd9a..2db56a60
+36 changed · 7 modified, 29 added
+       added  .github/copilot-instructions.md
+    modified  .gitignore
+       added  .mcp.json
+       added  .repowise/centrality_cache.pkl
+       added  .repowise/commit_window_cache.json
+       added  .repowise/config.yaml
+       added  .repowise/duplication_cache.pkl
+       added  .repowise/duplication_pairs.pkl
+       added  .repowise/episodes/episodes.db
+       added  .repowise/health_walk_cache.pkl
+  +26 more (use -v to list all)
+Framework edges added: 65
+Pages to regenerate: 44
+Pages to decay: 24
+Health analysis (partial): 36 changed, 38 performance-affected, 42 findings
+Dead code findings: 17 repo-wide, every kind
+Doc drift findings: 2
+Knowledge graph refreshed: 4 layers, 12 tour steps
+  ✓ Rebuilt 18 documentation pages from code
+Related pages refreshed on 24 pages
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── {^,^}  Index updated, documentation built from code ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                                                                                                                                                                                                                                                                              │
+│   Files changed           36                                                                                                                                                                                                                                                                                                                                                                                 │
+│   Graph                   737 nodes · 2,126 edges                                                                                                                                                                                                                                                                                                                                                            │
+│   Dead code               0 unreachable · 0 unused exports in changed files · 17 findings repo-wide                                                                                                                                                                                                                                                                                                          │
+│   Documentation           18 pages rebuilt from code                                                                                                                                                                                                                                                                                                                                                         │
+│   Git history             9 files refreshed                                                                                                                                                                                                                                                                                                                                                                  │
+│   Elapsed                 13.8s                                                                                                                                                                                                                                                                                                                                                                              │
+│                                                                                                                                                                                                                                                                                                                                                                                                              │
+│   What's next:                                                                                                                                                                                                                                                                                                                                                                                               │
+│   repowise serve              dashboard at http://localhost:3000 or the next free port                                                                                                                                                                                                                                                                                                                       │
+│                               (needs Node 20+; the first run downloads the UI)                                                                                                                                                                                                                                                                                                                               │
+│   repowise generate           write the documentation with a model (needs a key)                                                                                                                                                                                                                                                                                                                             │
+│                                                                                                                                                                                                                                                                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  ✓ VS Code MCP configured (/home/lumi/Documents/repos/lora-lab/.vscode/mcp.json)
+  ✓ VS Code extension recommended (/home/lumi/Documents/repos/lora-lab/.vscode/extensions.json)
+  ✓ Copilot instructions updated (/home/lumi/Documents/repos/lora-lab/.github/copilot-instructions.md)

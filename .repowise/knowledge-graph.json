@@ -4,7 +4,7 @@
   "project": {
     "name": "lora-lab",
     "is_monorepo": false,
-    "total_files": 76,
+    "total_files": 77,
     "entry_points": [
       "src/lora_lab/cli.py",
       "src/lora_lab/__init__.py",
@@ -264,6 +264,21 @@
       "summary": ""
     },
     {
+      "id": "file:.claude/settings.local.json",
+      "type": "config",
+      "filePath": ".claude/settings.local.json",
+      "language": "json",
+      "symbolCount": 0,
+      "lineCount": 2,
+      "complexity": "simple",
+      "pagerank": 0.005753,
+      "communityId": 5,
+      "tags": [
+        "config"
+      ],
+      "summary": "Configuration file: settings.local.json."
+    },
+    {
       "id": "file:.github/workflows/ci.yml",
       "type": "pipeline",
       "filePath": ".github/workflows/ci.yml",
@@ -271,14 +286,13 @@
       "symbolCount": 0,
       "lineCount": 13,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 5,
+      "pagerank": 0.005753,
+      "communityId": 7,
       "tags": [
         "config",
         "ci"
       ],
-      "summary": "GitHub Actions CI/CD workflow definition.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "GitHub Actions CI/CD workflow definition."
     },
     {
       "id": "file:.github/workflows/docker.yml",
@@ -288,14 +302,13 @@
       "symbolCount": 0,
       "lineCount": 25,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 6,
+      "pagerank": 0.005753,
+      "communityId": 8,
       "tags": [
         "config",
         "ci"
       ],
-      "summary": "GitHub Actions CI/CD workflow definition.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "GitHub Actions CI/CD workflow definition."
     },
     {
       "id": "file:CHANGELOG.md",
@@ -305,11 +318,10 @@
       "symbolCount": 0,
       "lineCount": 67,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 7,
+      "pagerank": 0.005753,
+      "communityId": 10,
       "tags": [],
-      "summary": "Release history and notable changes.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Release history and notable changes."
     },
     {
       "id": "file:README.md",
@@ -319,11 +331,10 @@
       "symbolCount": 0,
       "lineCount": 216,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 8,
+      "pagerank": 0.005753,
+      "communityId": 11,
       "tags": [],
-      "summary": "Project overview and entry point for new readers.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Project overview and entry point for new readers."
     },
     {
       "id": "file:config/grid.yaml",
@@ -333,13 +344,12 @@
       "symbolCount": 0,
       "lineCount": 36,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 9,
+      "pagerank": 0.005753,
+      "communityId": 12,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: grid.yaml.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: grid.yaml."
     },
     {
       "id": "file:config/project.yaml",
@@ -349,13 +359,12 @@
       "symbolCount": 0,
       "lineCount": 9,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 10,
+      "pagerank": 0.005753,
+      "communityId": 13,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: project.yaml.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: project.yaml."
     },
     {
       "id": "file:config/scenarios.yaml",
@@ -365,13 +374,12 @@
       "symbolCount": 0,
       "lineCount": 71,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 11,
+      "pagerank": 0.005753,
+      "communityId": 14,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: scenarios.yaml.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: scenarios.yaml."
     },
     {
       "id": "file:config/subjects.yaml",
@@ -381,13 +389,12 @@
       "symbolCount": 0,
       "lineCount": 24,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 12,
+      "pagerank": 0.005753,
+      "communityId": 15,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: subjects.yaml.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: subjects.yaml."
     },
     {
       "id": "file:docker/Dockerfile",
@@ -397,14 +404,13 @@
       "symbolCount": 4,
       "lineCount": 46,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 13,
+      "pagerank": 0.005753,
+      "communityId": 17,
       "tags": [
         "config",
         "infra"
       ],
-      "summary": "Container image build definition.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Container image build definition."
     },
     {
       "id": "file:docker/compose.yaml",
@@ -414,14 +420,13 @@
       "symbolCount": 0,
       "lineCount": 46,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 14,
+      "pagerank": 0.005753,
+      "communityId": 18,
       "tags": [
         "config",
         "infra"
       ],
-      "summary": "Infrastructure definition: compose.yaml.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Infrastructure definition: compose.yaml."
     },
     {
       "id": "file:docker/entrypoint.sh",
@@ -431,11 +436,10 @@
       "symbolCount": 0,
       "lineCount": 14,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 15,
+      "pagerank": 0.005753,
+      "communityId": 19,
       "tags": [],
-      "summary": "Docs & Tooling module entrypoint.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Docs & Tooling module entrypoint."
     },
     {
       "id": "file:docs/PATHS.md",
@@ -445,11 +449,10 @@
       "symbolCount": 0,
       "lineCount": 129,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 16,
+      "pagerank": 0.005753,
+      "communityId": 20,
       "tags": [],
-      "summary": "Documentation: PATHS.md.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Documentation: PATHS.md."
     },
     {
       "id": "file:pyproject.toml",
@@ -459,13 +462,12 @@
       "symbolCount": 0,
       "lineCount": 25,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 17,
+      "pagerank": 0.005753,
+      "communityId": 21,
       "tags": [
         "config"
       ],
-      "summary": "Python project metadata, dependencies, and build configuration.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Python project metadata, dependencies, and build configuration."
     },
     {
       "id": "file:src/lora_lab/__init__.py",
@@ -475,13 +477,12 @@
       "symbolCount": 1,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 18,
+      "pagerank": 0.005753,
+      "communityId": 22,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module __init__ (1 symbols).",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__ (1 symbols)."
     },
     {
       "id": "file:src/lora_lab/__main__.py",
@@ -491,13 +492,12 @@
       "symbolCount": 0,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 1,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module __main__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __main__."
     },
     {
       "id": "file:src/lora_lab/analyze/__init__.py",
@@ -507,11 +507,10 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 19,
+      "pagerank": 0.005753,
+      "communityId": 23,
       "tags": [],
-      "summary": "Application module __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__."
     },
     {
       "id": "file:src/lora_lab/analyze/report.py",
@@ -521,11 +520,10 @@
       "symbolCount": 11,
       "lineCount": 291,
       "complexity": "moderate",
-      "pagerank": 0.007865,
-      "communityId": 0,
+      "pagerank": 0.007638,
+      "communityId": 2,
       "tags": [],
-      "summary": "Application module report defining _row_meta, _format_adherence_details, samples_from_store.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module report defining _row_meta, _format_adherence_details, samples_from_store."
     },
     {
       "id": "file:src/lora_lab/analyze/stats.py",
@@ -535,11 +533,10 @@
       "symbolCount": 19,
       "lineCount": 274,
       "complexity": "complex",
-      "pagerank": 0.011095,
-      "communityId": 0,
+      "pagerank": 0.010776,
+      "communityId": 2,
       "tags": [],
-      "summary": "Application module stats defining Sample, LoraResult, mean.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module stats defining Sample, LoraResult, mean."
     },
     {
       "id": "file:src/lora_lab/audit.py",
@@ -549,11 +546,10 @@
       "symbolCount": 7,
       "lineCount": 87,
       "complexity": "moderate",
-      "pagerank": 0.007187,
-      "communityId": 0,
+      "pagerank": 0.00698,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module audit defining _sha256, audit_dataset, _aspect.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module audit defining _sha256, audit_dataset, _aspect."
     },
     {
       "id": "file:src/lora_lab/cli.py",
@@ -563,13 +559,12 @@
       "symbolCount": 14,
       "lineCount": 608,
       "complexity": "complex",
-      "pagerank": 0.012468,
-      "communityId": 0,
+      "pagerank": 0.01211,
+      "communityId": 1,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module cli defining main, _grid_hash, _load_api.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module cli defining main, _grid_hash, _load_api."
     },
     {
       "id": "file:src/lora_lab/comfy/__init__.py",
@@ -579,11 +574,10 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 20,
+      "pagerank": 0.005753,
+      "communityId": 24,
       "tags": [],
-      "summary": "Application module __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__."
     },
     {
       "id": "file:src/lora_lab/comfy/client.py",
@@ -593,11 +587,10 @@
       "symbolCount": 16,
       "lineCount": 129,
       "complexity": "complex",
-      "pagerank": 0.007421,
-      "communityId": 2,
+      "pagerank": 0.007207,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module client defining ComfyError, ComfyClient, __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module client defining ComfyError, ComfyClient, __init__."
     },
     {
       "id": "file:src/lora_lab/comfy/objectinfo.py",
@@ -607,11 +600,10 @@
       "symbolCount": 7,
       "lineCount": 101,
       "complexity": "moderate",
-      "pagerank": 0.007044,
-      "communityId": 2,
+      "pagerank": 0.006842,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module objectinfo defining _decl_type, widget_columns, map_widget_values.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module objectinfo defining _decl_type, widget_columns, map_widget_values."
     },
     {
       "id": "file:src/lora_lab/comfy/workflow.py",
@@ -621,11 +613,10 @@
       "symbolCount": 17,
       "lineCount": 298,
       "complexity": "complex",
-      "pagerank": 0.007912,
-      "communityId": 2,
+      "pagerank": 0.007684,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module workflow defining WorkflowError, load_workflow, is_ui_format.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module workflow defining WorkflowError, load_workflow, is_ui_format."
     },
     {
       "id": "file:src/lora_lab/config.py",
@@ -635,11 +626,10 @@
       "symbolCount": 21,
       "lineCount": 296,
       "complexity": "complex",
-      "pagerank": 0.022983,
-      "communityId": 1,
+      "pagerank": 0.022322,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module config defining Binding, WorkflowBindings, ProfileConfig.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module config defining Binding, WorkflowBindings, ProfileConfig."
     },
     {
       "id": "file:src/lora_lab/db.py",
@@ -649,7 +639,7 @@
       "symbolCount": 31,
       "lineCount": 515,
       "complexity": "complex",
-      "pagerank": 0.012165,
+      "pagerank": 0.011815,
       "communityId": 2,
       "tags": [],
       "summary": "Application module db defining Store, __init__, _migrate_jobs_unique.",
@@ -663,11 +653,10 @@
       "symbolCount": 17,
       "lineCount": 215,
       "complexity": "complex",
-      "pagerank": 0.007393,
-      "communityId": 0,
+      "pagerank": 0.00718,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module discover defining _normalise, _match_subject, slug.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module discover defining _normalise, _match_subject, slug."
     },
     {
       "id": "file:src/lora_lab/grid.py",
@@ -677,11 +666,10 @@
       "symbolCount": 6,
       "lineCount": 86,
       "complexity": "moderate",
-      "pagerank": 0.013105,
-      "communityId": 1,
+      "pagerank": 0.012728,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module grid defining Job, is_baseline, prefix.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module grid defining Job, is_baseline, prefix."
     },
     {
       "id": "file:src/lora_lab/heldout.py",
@@ -691,11 +679,10 @@
       "symbolCount": 6,
       "lineCount": 59,
       "complexity": "moderate",
-      "pagerank": 0.007245,
-      "communityId": 0,
+      "pagerank": 0.007037,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module heldout defining list_images, count_images, _sha256.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module heldout defining list_images, count_images, _sha256."
     },
     {
       "id": "file:src/lora_lab/importers/__init__.py",
@@ -705,11 +692,10 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 21,
+      "pagerank": 0.005753,
+      "communityId": 25,
       "tags": [],
-      "summary": "Application module __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__."
     },
     {
       "id": "file:src/lora_lab/importers/fizgig.py",
@@ -719,11 +705,10 @@
       "symbolCount": 11,
       "lineCount": 135,
       "complexity": "moderate",
-      "pagerank": 0.008252,
-      "communityId": 0,
+      "pagerank": 0.008015,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module fizgig defining SafetensorsError, read_header, read_metadata.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module fizgig defining SafetensorsError, read_header, read_metadata."
     },
     {
       "id": "file:src/lora_lab/runner.py",
@@ -733,11 +718,10 @@
       "symbolCount": 6,
       "lineCount": 182,
       "complexity": "moderate",
-      "pagerank": 0.00787,
-      "communityId": 2,
+      "pagerank": 0.007644,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module runner defining RunStats, build_prompt, run_jobs.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module runner defining RunStats, build_prompt, run_jobs."
     },
     {
       "id": "file:src/lora_lab/scorers/__init__.py",
@@ -747,11 +731,10 @@
       "symbolCount": 0,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 22,
+      "pagerank": 0.005753,
+      "communityId": 26,
       "tags": [],
-      "summary": "Application module __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__."
     },
     {
       "id": "file:src/lora_lab/scorers/adherence.py",
@@ -761,11 +744,10 @@
       "symbolCount": 9,
       "lineCount": 103,
       "complexity": "moderate",
-      "pagerank": 0.007567,
+      "pagerank": 0.00735,
       "communityId": 3,
       "tags": [],
-      "summary": "Application module adherence defining Judge, judge, weighted_adherence.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module adherence defining Judge, judge, weighted_adherence."
     },
     {
       "id": "file:src/lora_lab/scorers/base.py",
@@ -775,11 +757,10 @@
       "symbolCount": 6,
       "lineCount": 21,
       "complexity": "moderate",
-      "pagerank": 0.013109,
+      "pagerank": 0.012732,
       "communityId": 3,
       "tags": [],
-      "summary": "Application module base defining ImageRef, Score, Scorer.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module base defining ImageRef, Score, Scorer."
     },
     {
       "id": "file:src/lora_lab/scorers/defects.py",
@@ -789,11 +770,10 @@
       "symbolCount": 14,
       "lineCount": 155,
       "complexity": "moderate",
-      "pagerank": 0.01054,
+      "pagerank": 0.010237,
       "communityId": 3,
       "tags": [],
-      "summary": "Application module defects defining defect_index, has_critical, health.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module defects defining defect_index, has_critical, health."
     },
     {
       "id": "file:src/lora_lab/scorers/identity.py",
@@ -803,11 +783,10 @@
       "symbolCount": 36,
       "lineCount": 388,
       "complexity": "complex",
-      "pagerank": 0.01013,
+      "pagerank": 0.009839,
       "communityId": 3,
       "tags": [],
-      "summary": "Application module identity defining cosine, centroid, _sigmoid.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module identity defining cosine, centroid, _sigmoid."
     },
     {
       "id": "file:src/lora_lab/scorers/run.py",
@@ -817,7 +796,7 @@
       "symbolCount": 2,
       "lineCount": 149,
       "complexity": "moderate",
-      "pagerank": 0.008429,
+      "pagerank": 0.008187,
       "communityId": 3,
       "tags": [
         "entry_point"
@@ -833,11 +812,10 @@
       "symbolCount": 19,
       "lineCount": 204,
       "complexity": "complex",
-      "pagerank": 0.008034,
-      "communityId": 3,
+      "pagerank": 0.007803,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module vlm defining VLMSettings, endpoint, models_endpoint.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module vlm defining VLMSettings, endpoint, models_endpoint."
     },
     {
       "id": "file:src/lora_lab/web/__init__.py",
@@ -847,11 +825,10 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 23,
+      "pagerank": 0.005753,
+      "communityId": 27,
       "tags": [],
-      "summary": "Application module __init__.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module __init__."
     },
     {
       "id": "file:src/lora_lab/web/app.py",
@@ -861,8 +838,8 @@
       "symbolCount": 5,
       "lineCount": 238,
       "complexity": "moderate",
-      "pagerank": 0.00748,
-      "communityId": 1,
+      "pagerank": 0.007265,
+      "communityId": 2,
       "tags": [
         "entry_point"
       ],
@@ -877,11 +854,10 @@
       "symbolCount": 3,
       "lineCount": 70,
       "complexity": "simple",
-      "pagerank": 0.008026,
-      "communityId": 0,
+      "pagerank": 0.007795,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module broken defining create_broken_app, serve_broken.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module broken defining create_broken_app, serve_broken."
     },
     {
       "id": "file:src/lora_lab/web/routes_loras.py",
@@ -891,11 +867,10 @@
       "symbolCount": 8,
       "lineCount": 151,
       "complexity": "moderate",
-      "pagerank": 0.006378,
-      "communityId": 1,
+      "pagerank": 0.006194,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module routes_loras defining _state, _flash, _all_items.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module routes_loras defining _state, _flash, _all_items."
     },
     {
       "id": "file:src/lora_lab/web/routes_runs.py",
@@ -905,11 +880,10 @@
       "symbolCount": 10,
       "lineCount": 99,
       "complexity": "moderate",
-      "pagerank": 0.006378,
-      "communityId": 1,
+      "pagerank": 0.006194,
+      "communityId": 2,
       "tags": [],
-      "summary": "Application module routes_runs defining _state, _flash, _plan.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module routes_runs defining _state, _flash, _plan."
     },
     {
       "id": "file:src/lora_lab/web/routes_setup.py",
@@ -919,11 +893,10 @@
       "symbolCount": 29,
       "lineCount": 558,
       "complexity": "complex",
-      "pagerank": 0.006378,
-      "communityId": 1,
+      "pagerank": 0.006194,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module routes_setup defining _state, _flash, _allowed_roots.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module routes_setup defining _state, _flash, _allowed_roots."
     },
     {
       "id": "file:src/lora_lab/web/runner.py",
@@ -933,8 +906,8 @@
       "symbolCount": 12,
       "lineCount": 170,
       "complexity": "moderate",
-      "pagerank": 0.007279,
-      "communityId": 2,
+      "pagerank": 0.007069,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module runner defining Cancelled, RunManager, __init__.",
       "primaryOwner": "Thomas Lumesberger"
@@ -947,11 +920,10 @@
       "symbolCount": 5,
       "lineCount": 39,
       "complexity": "moderate",
-      "pagerank": 0.006378,
-      "communityId": 1,
+      "pagerank": 0.006194,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module state defining AppState, __init__, reload.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module state defining AppState, __init__, reload."
     },
     {
       "id": "file:src/lora_lab/web/static/app.js",
@@ -961,13 +933,12 @@
       "symbolCount": 26,
       "lineCount": 286,
       "complexity": "complex",
-      "pagerank": 0.010958,
+      "pagerank": 0.010643,
       "communityId": 4,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module app defining addAttrRow, escapeHtml, openBrowser.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module app defining addAttrRow, escapeHtml, openBrowser."
     },
     {
       "id": "file:src/lora_lab/web/store.py",
@@ -977,11 +948,10 @@
       "symbolCount": 26,
       "lineCount": 223,
       "complexity": "complex",
-      "pagerank": 0.007341,
-      "communityId": 1,
+      "pagerank": 0.00713,
+      "communityId": 0,
       "tags": [],
-      "summary": "Application module store defining ConfigError, local_dir, local_path.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module store defining ConfigError, local_dir, local_path."
     },
     {
       "id": "file:src/lora_lab/web/templates/base.html",
@@ -991,11 +961,10 @@
       "symbolCount": 0,
       "lineCount": 26,
       "complexity": "simple",
-      "pagerank": 0.005923,
+      "pagerank": 0.005753,
       "communityId": 4,
       "tags": [],
-      "summary": "Application module base.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module base."
     },
     {
       "id": "file:src/lora_lab/web/templates/grid.html",
@@ -1005,11 +974,10 @@
       "symbolCount": 0,
       "lineCount": 76,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 24,
+      "pagerank": 0.005753,
+      "communityId": 29,
       "tags": [],
-      "summary": "Application module grid.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module grid."
     },
     {
       "id": "file:src/lora_lab/web/templates/index.html",
@@ -1019,11 +987,10 @@
       "symbolCount": 0,
       "lineCount": 50,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 25,
+      "pagerank": 0.005753,
+      "communityId": 30,
       "tags": [],
-      "summary": "Application module index.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module index."
     },
     {
       "id": "file:src/lora_lab/web/templates/loras.html",
@@ -1033,11 +1000,10 @@
       "symbolCount": 0,
       "lineCount": 146,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 26,
+      "pagerank": 0.005753,
+      "communityId": 31,
       "tags": [],
-      "summary": "Application module loras.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module loras."
     },
     {
       "id": "file:src/lora_lab/web/templates/refs.html",
@@ -1047,11 +1013,10 @@
       "symbolCount": 0,
       "lineCount": 59,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 27,
+      "pagerank": 0.005753,
+      "communityId": 32,
       "tags": [],
-      "summary": "Application module refs.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module refs."
     },
     {
       "id": "file:src/lora_lab/web/templates/report.html",
@@ -1061,8 +1026,8 @@
       "symbolCount": 0,
       "lineCount": 509,
       "complexity": "complex",
-      "pagerank": 0.005923,
-      "communityId": 28,
+      "pagerank": 0.005753,
+      "communityId": 33,
       "tags": [],
       "summary": "Application module report.",
       "primaryOwner": "Thomas Lumesberger"
@@ -1075,11 +1040,10 @@
       "symbolCount": 0,
       "lineCount": 74,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 29,
+      "pagerank": 0.005753,
+      "communityId": 34,
       "tags": [],
-      "summary": "Application module run.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module run."
     },
     {
       "id": "file:src/lora_lab/web/templates/scenario_form.html",
@@ -1089,11 +1053,10 @@
       "symbolCount": 0,
       "lineCount": 66,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 30,
+      "pagerank": 0.005753,
+      "communityId": 35,
       "tags": [],
-      "summary": "Application module scenario_form.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module scenario_form."
     },
     {
       "id": "file:src/lora_lab/web/templates/setup.html",
@@ -1103,11 +1066,10 @@
       "symbolCount": 0,
       "lineCount": 109,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 31,
+      "pagerank": 0.005753,
+      "communityId": 36,
       "tags": [],
-      "summary": "Application module setup.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module setup."
     },
     {
       "id": "file:src/lora_lab/web/templates/subject_form.html",
@@ -1117,11 +1079,10 @@
       "symbolCount": 0,
       "lineCount": 71,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 32,
+      "pagerank": 0.005753,
+      "communityId": 37,
       "tags": [],
-      "summary": "Application module subject_form.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Application module subject_form."
     },
     {
       "id": "file:tests/conftest.py",
@@ -1131,13 +1092,12 @@
       "symbolCount": 3,
       "lineCount": 7,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 1,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for conftest.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for conftest."
     },
     {
       "id": "file:tests/test_broken.py",
@@ -1147,13 +1107,12 @@
       "symbolCount": 1,
       "lineCount": 15,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 1,
       "tags": [
         "test"
       ],
-      "summary": "Tests for broken.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for broken."
     },
     {
       "id": "file:tests/test_cli_paths.py",
@@ -1163,13 +1122,12 @@
       "symbolCount": 3,
       "lineCount": 52,
       "complexity": "simple",
-      "pagerank": 0.005923,
+      "pagerank": 0.005753,
       "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for cli_paths.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for cli_paths."
     },
     {
       "id": "file:tests/test_compose.py",
@@ -1179,23 +1137,22 @@
       "symbolCount": 2,
       "lineCount": 20,
       "complexity": "simple",
-      "pagerank": 0.005923,
-      "communityId": 35,
+      "pagerank": 0.005753,
+      "communityId": 18,
       "tags": [
         "test"
       ],
-      "summary": "Tests for compose.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for compose."
     },
     {
       "id": "file:tests/test_db_audit.py",
       "type": "file",
       "filePath": "tests/test_db_audit.py",
       "language": "python",
-      "symbolCount": 7,
-      "lineCount": 113,
+      "symbolCount": 8,
+      "lineCount": 134,
       "complexity": "moderate",
-      "pagerank": 0.005923,
+      "pagerank": 0.005753,
       "communityId": 0,
       "tags": [
         "test"
@@ -1211,13 +1168,12 @@
       "symbolCount": 12,
       "lineCount": 205,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 1,
       "tags": [
         "test"
       ],
-      "summary": "Tests for discover.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for discover."
     },
     {
       "id": "file:tests/test_fizgig.py",
@@ -1227,13 +1183,12 @@
       "symbolCount": 8,
       "lineCount": 89,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 1,
       "tags": [
         "test"
       ],
-      "summary": "Tests for fizgig.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for fizgig."
     },
     {
       "id": "file:tests/test_grid.py",
@@ -1243,13 +1198,12 @@
       "symbolCount": 11,
       "lineCount": 99,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 1,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for grid.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for grid."
     },
     {
       "id": "file:tests/test_pipeline.py",
@@ -1259,13 +1213,12 @@
       "symbolCount": 3,
       "lineCount": 104,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 3,
       "tags": [
         "test"
       ],
-      "summary": "Tests for pipeline.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for pipeline."
     },
     {
       "id": "file:tests/test_scoring.py",
@@ -1275,13 +1228,12 @@
       "symbolCount": 28,
       "lineCount": 273,
       "complexity": "complex",
-      "pagerank": 0.005923,
-      "communityId": 3,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for scoring.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for scoring."
     },
     {
       "id": "file:tests/test_setup_ui.py",
@@ -1291,13 +1243,12 @@
       "symbolCount": 12,
       "lineCount": 314,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 1,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for setup_ui.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for setup_ui."
     },
     {
       "id": "file:tests/test_stats.py",
@@ -1307,13 +1258,12 @@
       "symbolCount": 14,
       "lineCount": 125,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 0,
+      "pagerank": 0.005753,
+      "communityId": 3,
       "tags": [
         "test"
       ],
-      "summary": "Tests for stats.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for stats."
     },
     {
       "id": "file:tests/test_vlm.py",
@@ -1323,13 +1273,12 @@
       "symbolCount": 15,
       "lineCount": 127,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 3,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for vlm.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for vlm."
     },
     {
       "id": "file:tests/test_web.py",
@@ -1339,13 +1288,12 @@
       "symbolCount": 3,
       "lineCount": 105,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 1,
+      "pagerank": 0.005753,
+      "communityId": 2,
       "tags": [
         "test"
       ],
-      "summary": "Tests for web.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for web."
     },
     {
       "id": "file:tests/test_workflow.py",
@@ -1355,13 +1303,12 @@
       "symbolCount": 11,
       "lineCount": 136,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 2,
+      "pagerank": 0.005753,
+      "communityId": 0,
       "tags": [
         "test"
       ],
-      "summary": "Tests for workflow.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Tests for workflow."
     },
     {
       "id": "file:workflows/example-sft-dmd.json",
@@ -1371,13 +1318,12 @@
       "symbolCount": 0,
       "lineCount": 271,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 33,
+      "pagerank": 0.005753,
+      "communityId": 38,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: example-sft-dmd.json.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: example-sft-dmd.json."
     },
     {
       "id": "file:workflows/example-sft-reference.json",
@@ -1387,13 +1333,12 @@
       "symbolCount": 0,
       "lineCount": 265,
       "complexity": "moderate",
-      "pagerank": 0.005923,
-      "communityId": 34,
+      "pagerank": 0.005753,
+      "communityId": 39,
       "tags": [
         "config"
       ],
-      "summary": "Configuration file: example-sft-reference.json.",
-      "primaryOwner": "Thomas Lumesberger"
+      "summary": "Configuration file: example-sft-reference.json."
     },
     {
       "id": "function:src/lora_lab/analyze/stats.py:analyse_all",
@@ -6399,6 +6344,7 @@
       "name": "Config",
       "description": "",
       "nodeIds": [
+        "file:.claude/settings.local.json",
         "file:.github/workflows/ci.yml",
         "file:.github/workflows/docker.yml",
         "file:config/grid.yaml",
@@ -6637,6 +6583,7 @@
       "path": "",
       "layerId": "layer:config",
       "nodeIds": [
+        "file:.claude/settings.local.json",
         "file:.github/workflows/ci.yml",
         "file:.github/workflows/docker.yml",
         "file:config/grid.yaml",
