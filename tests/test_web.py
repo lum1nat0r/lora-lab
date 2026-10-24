@@ -54,7 +54,12 @@ def test_dashboard_and_report_render(root: Path, tmp_path: Path) -> None:
     assert report.status_code == 200
     assert "Ranking" in report.text
     assert "Szenario-Matrix" in report.text
+    assert "Side-by-Side Bildvergleich" in report.text
+    assert "/images/images/" in report.text
 
     api = client.get("/api/report").json()
     assert api["samples"] == 4
     assert len(api["results"]) == 2
+    assert len(api["results"][0]["images"]) == 2
+    assert api["results"][0]["axes"]["quality"] is not None
+    assert len(api["compare"]) == 2

@@ -1,70 +1,332 @@
 {% extends "base.html" %}
 {% block title %}Report{% endblock %}
 {% block content %}
+
+<div class="report-head">
+  <div>
+    <h2 style="margin:0">Auswertung &amp; Bildvergleich</h2>
+    <p class="hint" style="margin:4px 0 0">
+      Vergleicht deine getesteten LoRA-Checkpoints anhand von <strong>Gesichtstreue (45%)</strong>,
+      <strong>Prompt-Treue (35%)</strong> und <strong>Bildqualität (20%)</strong>.
+      Klicke auf ein Bild für die Großansicht.
+    </p>
+  </div>
+  {% if runs %}
+  <form method="get" action="/report" class="run-filter">
+    <label for="run-select" style="margin:0">Run:</label>
+    <select id="run-select" name="run" class="select-sm" onchange="this.form.submit()">
+      <option value="" {% if not selected %}selected{% endif %}>Alle Runs ({{ payload.total_images }} Bilder)</option>
+      {% for r in runs %}
+      <option value="{{ r.name }}" {% if selected == r.name %}selected{% endif %}>{{ r.name }} ({{ r.profile }})</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
 {% if not payload.results %}
-  <p class="muted">Keine gescorten Bilder. Erst <code>lora-lab score</code> laufen lassen.</p>
+  {% if payload.unscored %}
+    <div class="flash">
+      <strong>{{ payload.unscored|length }} Bilder wurden generiert, aber noch nicht bewertet.</strong>
+      Starte das Scoring, um das Ranking zu berechnen – oder vergleiche die Bilder schon jetzt unten.
+      <form method="post" action="/run/score" style="display:inline-block;margin-left:12px">
+        <button type="submit" class="primary btn-sm">Jetzt bewerten (Score starten)</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="card" style="margin-top:18px">
+      <p style="margin:0 0 10px">Noch keine generierten oder bewerteten Bilder vorhanden.</p>
+      <a class="button primary" href="/run">Zum Run-Bereich →</a>
+    </div>
+  {% endif %}
 {% else %}
 
-<h2>Ranking <span class="muted" style="text-transform:none;letter-spacing:0">· {{ payload.samples }} Bilder · LCB95</span></h2>
-<table>
-  <tr>
-    <th>#</th><th>Betriebspunkt</th><th>n</th><th>mean</th><th>LCB</th><th>robust</th>
-    <th>stabil</th><th>P(Rang 1)</th><th>yield</th><th>fail</th><th>scen</th>
-  </tr>
-  {% for r in payload.results %}
-  {% set op = r.op %}
-  <tr>
-    <td class="num">{{ loop.index }}</td>
-    <td>{{ r.lora_id }} <span class="muted">ep{{ r.epoch }} · s{{ r.strength }}</span></td>
-    <td class="num">{{ r.n }}</td>
-    <td class="num">{{ '%.3f'|format(r.mean) }}</td>
-    <td class="num">{{ '%.3f'|format(r.lcb) }}</td>
-    <td class="num">{{ '%.3f'|format(r.robustness) }}</td>
-    <td class="num">{% if r.stability is not none %}{{ '%.2f'|format(r.stability) }}{% else %}–{% endif %}</td>
-    <td class="num">{{ '%.0f%%'|format(payload.top_rank.get(op, 0) * 100) }}</td>
-    <td class="num">{{ '%.0f%%'|format(r.yield_rate * 100) }}</td>
-    <td class="num">{{ '%.0f%%'|format(r.fail_rate * 100) }}</td>
-    <td class="num">{{ r.scenarios }}</td>
-  </tr>
-  {% endfor %}
-</table>
-<p class="muted">Rangfolge nach unterer Konfidenzgrenze. P(Rang 1) ist die Häufigkeit,
-mit der der Betriebspunkt unter perturbierten Achsengewichten vorn bleibt.</p>
+  {% set best = payload.results[0] %}
+  <div class="winner-card">
+    <div class="winner-info">
+      <div class="k">Empfohlene Einstellung (Platz 1 von {{ payload.results|length }})</div>
+      <div class="winner-title">
+        {{ best.lora_id }}
+        <span class="pill">Epoche {{ best.epoch }}</span>
+        <span class="pill">Stärke {{ '%g'|format(best.strength) }}</span>
+        <span class="pill">{{ best.subject }}</span>
+      </div>
+      <div class="winner-metrics">
+        <div><span class="muted">Gesamt-Score:</span> <strong>{{ '%.0f%%'|format(best.mean * 100) }}</strong> <span class="muted">(sicher ≥ {{ '%.0f%%'|format(best.lcb * 100) }})</span></div>
+        <div><span class="muted">Brauchbare Bilder:</span> <strong class="ok">{{ '%.0f%%'|format(best.yield_rate * 100) }}</strong></div>
+        <div><span class="muted">Ausfälle:</span> <strong class="{{ 'fail' if best.fail_rate > 0 else 'muted' }}">{{ '%.0f%%'|format(best.fail_rate * 100) }}</strong></div>
+        <div><span class="muted">Getestet:</span> <strong>{{ best.n }} Bilder</strong> in {{ best.scenarios }} Szenarien</div>
+      </div>
+    </div>
+    {% if best.images %}
+    <div class="winner-shots">
+      {% for img in best.images[:4] %}
+      <div class="shot shot-clickable"
+           onclick="openImageModal(this)"
+           data-path="/images/{{ img.path }}"
+           data-lora="{{ img.lora_id }}"
+           data-epoch="{{ img.epoch }}"
+           data-strength="{{ '%g'|format(img.strength) }}"
+           data-scenario="{{ img.scenario }}"
+           data-seed="{{ img.seed }}"
+           data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else '–' }}"
+           data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
+           data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+           data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
+           data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
+        <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
+        <div class="meta">
+          {{ img.scenario }} · s{{ img.seed }}
+          <span class="score-badge {{ 'bad' if img.failed else ('good' if img.passed else '') }}">{{ '%.0f%%'|format(img.utility * 100) }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
 
-<h2>Szenario-Matrix</h2>
-<table class="matrix">
-  <tr><th>Betriebspunkt</th>{% for s in payload.scenario_names %}<th>{{ s }}</th>{% endfor %}</tr>
-  {% for op in payload.operating_points %}
-  <tr>
-    <td>{{ op }}</td>
-    {% for s in payload.scenario_names %}
-      {% set cell = payload.matrix.get(op, {}).get(s) %}
-      {% if cell %}<td style="background: {{ cell.shade }}">{{ '%.2f'|format(cell.mean) }}</td>
-      {% else %}<td class="dim">–</td>{% endif %}
+  <h2>1 · Ranking der Einstellungen <span class="muted" style="text-transform:none;letter-spacing:0">· {{ payload.samples }} bewertete Bilder · Klick auf „Bilder“ klappt die Vorschau auf</span></h2>
+  <table>
+    <tr>
+      <th title="Platzierung nach unterer Sicherheitsgrenze (LCB95)">#</th>
+      <th>LoRA · Epoche · Stärke</th>
+      <th title="Gewichteter Durchschnitt über alle Szenarien (0–100%)">Gesamt</th>
+      <th title="Untere 95%-Konfidenzgrenze: Wert, den die LoRA auch bei ungünstigen Seeds/Szenarien mindestens erreicht">Sicher ≥ (LCB)</th>
+      <th title="Gesichtsähnlichkeit zu den Referenzfotos (ArcFace, 45% Gewicht)">Gesicht</th>
+      <th title="Wurden die Szenario-Details im Bild umgesetzt? (VLM-Judge, 35% Gewicht)">Prompt</th>
+      <th title="Technische Bildqualität: Schärfe, Belichtung, keine Artefakte (20% Gewicht)">Qualität</th>
+      <th title="Anteil der Bilder, die alle Mindestwerte bestehen (Gesicht ≥ 60%, Prompt ≥ 80%, Qualität ≥ 30%)">Treffer</th>
+      <th title="Anteil unbrauchbarer Bilder (defekt, falsche Gesichtsanzahl oder Gesicht < 20%)">Ausfälle</th>
+      <th title="Schwächstes Fünftel der Szenarien (Robustheit) / Gleichmäßigkeit über Seeds (Stabilität)">Konstanz</th>
+      <th>Bilder</th>
+    </tr>
+    {% for r in payload.results %}
+    {% set op = r.op %}
+    <tr>
+      <td class="num"><strong>{{ loop.index }}</strong></td>
+      <td>
+        <strong>{{ r.lora_id }}</strong>
+        <span class="muted">· ep{{ r.epoch }} · s{{ '%g'|format(r.strength) }}</span>
+        <div class="hint" style="margin:0">{{ r.subject }} · {{ r.scenarios }} Szenarien</div>
+      </td>
+      <td class="num"><strong>{{ '%.0f%%'|format(r.mean * 100) }}</strong></td>
+      <td class="num muted">{{ '%.0f%%'|format(r.lcb * 100) }}</td>
+      <td class="num">{% if r.axes.identity is not none %}{{ '%.0f%%'|format(r.axes.identity * 100) }}{% else %}<span class="muted" title="Kein ArcFace-Modell beim Scoring aktiv">–</span>{% endif %}</td>
+      <td class="num">{% if r.axes.adherence is not none %}{{ '%.0f%%'|format(r.axes.adherence * 100) }}{% else %}<span class="muted" title="Kein VLM-Judge beim Scoring aktiv">–</span>{% endif %}</td>
+      <td class="num">{% if r.axes.quality is not none %}{{ '%.0f%%'|format(r.axes.quality * 100) }}{% else %}<span class="muted">–</span>{% endif %}</td>
+      <td class="num {{ 'ok' if r.yield_rate >= 0.7 else '' }}">{{ '%.0f%%'|format(r.yield_rate * 100) }}</td>
+      <td class="num {{ 'fail' if r.fail_rate > 0 else 'muted' }}">{{ '%.0f%%'|format(r.fail_rate * 100) }}</td>
+      <td class="num muted" title="Robustheit (schlechteste 20% Szenarien): {{ '%.0f%%'|format(r.robustness * 100) }} · Seed-Stabilität: {{ '%.0f%%'|format(r.stability * 100) if r.stability is not none else '–' }} · Chance auf Platz 1: {{ '%.0f%%'|format(payload.top_rank.get(op, 0) * 100) }}">
+        {{ '%.0f%%'|format(r.robustness * 100) }}
+        {% if r.stability is not none %}<span class="hint">· ±{{ '%.0f%%'|format((1 - r.stability) * 50) }}</span>{% endif %}
+      </td>
+      <td>
+        <button type="button" class="btn-sm" onclick="toggleOpGallery('gal-{{ loop.index }}')">
+          {{ r.images|length }} Bilder ▾
+        </button>
+      </td>
+    </tr>
+    <tr id="gal-{{ loop.index }}" class="gallery-row" hidden>
+      <td colspan="11">
+        <div class="grid">
+          {% for img in r.images %}
+          <div class="shot shot-clickable {{ 'shot-fail' if img.failed else ('shot-pass' if img.passed else '') }}"
+               onclick="openImageModal(this)"
+               data-path="/images/{{ img.path }}"
+               data-lora="{{ img.lora_id }}"
+               data-epoch="{{ img.epoch }}"
+               data-strength="{{ '%g'|format(img.strength) }}"
+               data-scenario="{{ img.scenario }}"
+               data-seed="{{ img.seed }}"
+               data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else '–' }}"
+               data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
+               data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+               data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
+               data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else 'Grenzwertig') }}">
+            <img src="/images/{{ img.path }}" alt="{{ img.scenario }}" loading="lazy">
+            <div class="meta">
+              <strong>{{ img.scenario }}</strong> · seed {{ img.seed }}<br>
+              Score: <strong>{{ '%.0f%%'|format(img.utility * 100) }}</strong>
+              {% if img.failed %}<span class="err">· Ausfall</span>{% elif img.passed %}<span class="ok">· OK</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
     {% endfor %}
-  </tr>
-  {% endfor %}
-</table>
+  </table>
 
-<h2>Strength-Kurve</h2>
-<table>
-  <tr><th>LoRA</th><th>Werte</th></tr>
-  {% for lora, points in payload.strength_series.items() %}
-  <tr><td>{{ lora }}</td>
-    <td class="num">{% for p in points %}s{{ p.strength }}: {{ '%.2f'|format(p.mean) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
-  </tr>
-  {% endfor %}
-</table>
+  <details class="help-box">
+    <summary>Was bedeuten die Spalten genau?</summary>
+    <div class="help-grid">
+      <div><strong>Gesamt &amp; Sicher ≥ (LCB):</strong> „Gesamt“ ist der Durchschnitt über alle Szenarien. Da manche LoRAs nur zufällig bei einem Seed gut aussehen, sortiert die Tabelle nach <em>Sicher ≥ (LCB95)</em> – dem Wert, den die LoRA mit 95% Sicherheit mindestens hält.</div>
+      <div><strong>Gesicht / Prompt / Qualität:</strong> Die 3 Einzelmessungen. Fehlt ein Wert („–“), war beim Scoring kein Gesichtsmodell (ArcFace) bzw. kein VLM-Judge aktiv – es wurden dann nur die vorhandenen Achsen gewichtet.</div>
+      <div><strong>Treffer &amp; Ausfälle:</strong> Ein Bild zählt als <em>Treffer</em>, wenn Gesicht ≥ 60%, Prompt ≥ 80% und Qualität ≥ 30% liegen. Ein <em>Ausfall</em> ist ein kaputtes Bild, falsche Gesichtsanzahl oder Gesicht &lt; 20%.</div>
+      <div><strong>Konstanz:</strong> Zeigt den Wert in den schwierigsten Szenarien (Robustheit). Eine hohe Zahl heißt: Die LoRA funktioniert überall, nicht nur im einfachen Portrait-Prompt.</div>
+    </div>
+  </details>
 
-<h2>Epochen-Kurve</h2>
-<table>
-  <tr><th>LoRA</th><th>Werte</th></tr>
-  {% for lora, points in payload.epoch_series.items() %}
-  <tr><td>{{ lora }}</td>
-    <td class="num">{% for p in points %}ep{{ p.epoch }}: {{ '%.2f'|format(p.mean) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
-  </tr>
-  {% endfor %}
-</table>
+  <h2>2 · Szenario-Matrix <span class="muted" style="text-transform:none;letter-spacing:0">· Klicke auf eine Zelle, um genau diese Bilder darunter zu sehen</span></h2>
+  <table class="matrix">
+    <tr>
+      <th>Einstellung</th>
+      {% for s in payload.scenario_names %}<th>{{ s }}</th>{% endfor %}
+    </tr>
+    {% for op in payload.operating_points %}
+    <tr>
+      <td><strong>{{ op }}</strong></td>
+      {% for s in payload.scenario_names %}
+        {% set cell = payload.matrix.get(op, {}).get(s) %}
+        {% if cell %}
+        <td class="matrix-cell"
+            style="background: {{ cell.shade }}"
+            onclick="jumpToCompare('{{ s }}')"
+            title="{{ op }} in {{ s }}: {{ '%.0f%%'|format(cell.mean * 100) }} ({{ cell.n }} Bilder) – Klicken zum Vergleichen">
+          {{ '%.0f%%'|format(cell.mean * 100) }}
+          <div class="cell-sub">{{ cell.n }}×</div>
+        </td>
+        {% else %}
+        <td class="dim">–</td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+
+  {% if payload.strength_series|length > 0 or payload.epoch_series|length > 0 %}
+  <div class="row" style="margin-top:18px">
+    <div>
+      <h2>Stärke-Verlauf</h2>
+      <table>
+        <tr><th>LoRA</th><th>Score nach Stärke</th></tr>
+        {% for lora, points in payload.strength_series.items() %}
+        <tr>
+          <td><strong>{{ lora }}</strong></td>
+          <td class="num">
+            {% for p in points %}
+              <span class="pill">s{{ '%g'|format(p.strength) }}: <strong>{{ '%.0f%%'|format(p.mean * 100) }}</strong></span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div>
+      <h2>Epochen-Verlauf</h2>
+      <table>
+        <tr><th>LoRA</th><th>Score nach Epoche</th></tr>
+        {% for lora, points in payload.epoch_series.items() %}
+        <tr>
+          <td><strong>{{ lora }}</strong></td>
+          <td class="num">
+            {% for p in points %}
+              <span class="pill">ep{{ p.epoch }}: <strong>{{ '%.0f%%'|format(p.mean * 100) }}</strong></span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
 {% endif %}
+
+{% if payload.compare %}
+<h2 id="compare-section">3 · Side-by-Side Bildvergleich <span class="muted" style="text-transform:none;letter-spacing:0">· Gleiches Szenario &amp; gleicher Seed direkt nebeneinander über alle LoRAs/Epochen</span></h2>
+
+<div class="compare-toolbar">
+  <div class="group-meta">
+    <label for="cmp-scenario" style="margin:0">Szenario:</label>
+    <select id="cmp-scenario" class="select-sm" onchange="filterCompare()">
+      <option value="">Alle Szenarien ({{ payload.scenario_names|length }})</option>
+      {% for s in payload.scenario_names %}
+      <option value="{{ s }}">{{ s }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="cmp-seed" style="margin:0 0 0 10px">Seed:</label>
+    <select id="cmp-seed" class="select-sm" onchange="filterCompare()">
+      <option value="">Alle Seeds ({{ payload.seeds|length }})</option>
+      {% for seed in payload.seeds %}
+      <option value="{{ seed }}">Seed {{ seed }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <span class="hint" style="margin:0">Tipp: Ideal um zu sehen, ab welcher Epoche oder Stärke das Gesicht kippt oder überbrennt.</span>
+</div>
+
+{% for row in payload.compare %}
+<div class="compare-block" data-scenario="{{ row.scenario }}" data-seed="{{ row.seed }}">
+  <div class="compare-head">
+    <strong>Szenario: {{ row.scenario }}</strong>
+    <span class="pill">Seed {{ row.seed }}</span>
+  </div>
+  <div class="compare-grid">
+    {% for op in payload.operating_points %}
+      {% set img = row.by_op.get(op) %}
+      {% if img %}
+      <div class="shot shot-clickable {{ 'shot-fail' if img.failed else ('shot-pass' if img.passed else '') }}"
+           onclick="openImageModal(this)"
+           data-path="/images/{{ img.path }}"
+           data-lora="{{ img.lora_id }}"
+           data-epoch="{{ img.epoch }}"
+           data-strength="{{ '%g'|format(img.strength) }}"
+           data-scenario="{{ img.scenario }}"
+           data-seed="{{ img.seed }}"
+           data-utility="{{ '%.0f%%'|format(img.utility * 100) if img.utility is not none else 'unbewertet' }}"
+           data-identity="{{ '%.0f%%'|format(img.identity * 100) if img.identity is not none else 'nicht gemessen' }}"
+           data-adherence="{{ '%.0f%%'|format(img.adherence * 100) if img.adherence is not none else 'nicht gemessen' }}"
+           data-quality="{{ '%.0f%%'|format(img.quality * 100) if img.quality is not none else 'nicht gemessen' }}"
+           data-status="{{ 'Ausfall' if img.failed else ('OK' if img.passed else ('Grenzwertig' if img.utility is not none else 'Unbewertet')) }}">
+        <img src="/images/{{ img.path }}" alt="{{ op }}" loading="lazy">
+        <div class="meta">
+          <strong>{{ img.lora_id }}</strong> · ep{{ img.epoch }} · s{{ '%g'|format(img.strength) }}<br>
+          {% if img.utility is not none %}
+            Score: <strong>{{ '%.0f%%'|format(img.utility * 100) }}</strong>
+            {% if img.failed %}<span class="err">· Ausfall</span>{% elif img.passed %}<span class="ok">· OK</span>{% endif %}
+          {% else %}
+            <span class="muted">noch nicht bewertet</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div id="img-modal" class="modal" onclick="if(event.target===this)closeImageModal()">
+  <div class="box img-modal-box">
+    <div class="head">
+      <strong id="im-title">Bilddetails</strong>
+      <button type="button" class="btn-sm" onclick="closeImageModal()">✕</button>
+    </div>
+    <div class="body img-modal-body">
+      <div class="img-modal-preview">
+        <a id="im-link" href="#" target="_blank" title="Originalbild in neuem Tab öffnen">
+          <img id="im-img" src="" alt="Vorschau">
+        </a>
+      </div>
+      <div class="img-modal-meta">
+        <table>
+          <tr><th>LoRA</th><td id="im-lora"></td></tr>
+          <tr><th>Epoche / Stärke</th><td id="im-ep-str"></td></tr>
+          <tr><th>Szenario / Seed</th><td id="im-scen-seed"></td></tr>
+          <tr><th>Status</th><td id="im-status"></td></tr>
+          <tr><th>Gesamt-Score</th><td><strong id="im-utility"></strong></td></tr>
+          <tr><th>Gesicht (Identity)</th><td id="im-identity"></td></tr>
+          <tr><th>Prompt (Adherence)</th><td id="im-adherence"></td></tr>
+          <tr><th>Qualität (Quality)</th><td id="im-quality"></td></tr>
+        </table>
+        <div class="actions">
+          <a id="im-open-btn" class="button primary" href="#" target="_blank">Vollbild in neuem Tab öffnen ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

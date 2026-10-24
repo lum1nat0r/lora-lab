@@ -5,7 +5,17 @@ from __future__ import annotations
 import json
 
 from ..db import Store
-from .stats import AXES, LoraResult, Sample, analyse_all, image_utility, mean, rank_stability
+from .stats import (
+    AXES,
+    LoraResult,
+    Sample,
+    analyse_all,
+    image_utility,
+    is_fail,
+    is_pass,
+    mean,
+    rank_stability,
+)
 
 HEADER = (
     f"{'#':>2}  {'LoRA':<28} {'subj':<12} {'ep':>4} {'s':>4} {'n':>5} "
@@ -29,6 +39,8 @@ def samples_from_store(store: Store, run_id: int | None = None) -> list[Sample]:
                 critical=bool(critical) if critical is not None else False,
                 epoch=int(row["epoch"]),
                 strength=float(row["strength"]),
+                image_id=int(row["id"]) if "id" in row.keys() and row["id"] is not None else None,
+                path=str(row["path"]) if "path" in row.keys() and row["path"] else "",
             )
         )
     return samples
@@ -109,8 +121,42 @@ def build_report(
     keys = {operating_point(r): r for r in results}
     sums = {key: {axis: 0.0 for axis in AXES} for key in keys}
     seen = {key: {axis: 0 for axis in AXES} for key in keys}
+
+    images_by_op: dict[str, list[dict]] = {}
+    images_by_cell: dict[tuple[str, str], list[dict]] = {}
+    compare_slots: dict[tuple[str, int], dict[str, dict]] = {}
+    unscored: list[dict] = []
+
     for sample in samples:
         key = f"{sample.lora_id}@ep{sample.epoch}@s{sample.strength:g}"
+        utility = image_utility(sample, weights)
+        item = {
+            "id": sample.image_id,
+            "path": sample.path,
+            "op": key,
+            "lora_id": sample.lora_id,
+            "subject": sample.subject,
+            "epoch": sample.epoch,
+            "strength": sample.strength,
+            "scenario": sample.scenario,
+            "seed": sample.seed,
+            "identity": sample.identity,
+            "adherence": sample.adherence,
+            "quality": sample.quality,
+            "critical": sample.critical,
+            "utility": utility,
+            "passed": is_pass(sample) if utility is not None else False,
+            "failed": is_fail(sample) if utility is not None else False,
+        }
+        if sample.path:
+            compare_slots.setdefault((sample.scenario, sample.seed), {})[key] = item
+        if utility is None:
+            if sample.path:
+                unscored.append(item)
+            continue
+        if sample.path:
+            images_by_op.setdefault(key, []).append(item)
+            images_by_cell.setdefault((key, sample.scenario), []).append(item)
         if key not in sums:
             continue
         for axis in AXES:
@@ -118,6 +164,12 @@ def build_report(
             if value is not None:
                 sums[key][axis] += value
                 seen[key][axis] += 1
+
+    for items in images_by_op.values():
+        items.sort(key=lambda x: -(x["utility"] or 0.0))
+    for items in images_by_cell.values():
+        items.sort(key=lambda x: x["seed"])
+
     components = {
         name: {
             axis: (sums[name][axis] / seen[name][axis] if seen[name][axis] else None)
@@ -127,29 +179,45 @@ def build_report(
     }
 
     breakdown = scenario_breakdown(samples, weights)
-    scenarios = sorted({row["scenario"] for row in breakdown})
+    scenarios = sorted({row["scenario"] for row in breakdown} | {s.scenario for s in samples})
+    seeds = sorted({s.seed for s in samples})
     matrix: dict[str, dict[str, dict]] = {}
     for row in breakdown:
+        cell_images = images_by_cell.get((row["op"], row["scenario"]), [])
         matrix.setdefault(row["op"], {})[row["scenario"]] = {
             "mean": row["mean"],
             "n": row["n"],
             "shade": _shade(row["mean"]),
+            "images": cell_images,
         }
 
     op_order = [operating_point(r) for r in results]
+    if not op_order:
+        op_order = sorted({f"{s.lora_id}@ep{s.epoch}@s{s.strength:g}" for s in samples})
     ranks = rank_stability(components, draws=stability_draws) if results else {}
     top_rank = {
         name: sum(p for rank, p in values.items() if rank <= 1.5)
         for name, values in ranks.items()
     }
     return {
-        "samples": len(samples),
+        "samples": sum(r.n for r in results),
+        "total_images": len(samples),
+        "unscored": unscored,
         "operating_points": op_order,
         "scenario_names": scenarios,
+        "seeds": seeds,
         "matrix": matrix,
         "breakdown": breakdown,
         "strength_series": _series(breakdown, "strength"),
         "epoch_series": _series(breakdown, "epoch"),
+        "compare": [
+            {
+                "scenario": scenario,
+                "seed": seed,
+                "by_op": slots,
+            }
+            for (scenario, seed), slots in sorted(compare_slots.items())
+        ],
         "results": [
             {
                 "op": operating_point(r),
@@ -167,6 +235,8 @@ def build_report(
                 "fail_rate": r.fail_rate,
                 "scenarios": r.scenarios,
                 "per_scenario": r.per_scenario,
+                "axes": components.get(operating_point(r), {}),
+                "images": images_by_op.get(operating_point(r), []),
             }
             for r in results
         ],

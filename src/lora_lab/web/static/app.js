@@ -255,3 +255,58 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(pollRun, 3000);
   }
 });
+
+// -- report gallery, compare & lightbox -----------------------------------
+
+function toggleOpGallery(id) {
+  const row = document.getElementById(id);
+  if (row) row.hidden = !row.hidden;
+}
+
+function filterCompare() {
+  const scen = document.getElementById("cmp-scenario")?.value || "";
+  const seed = document.getElementById("cmp-seed")?.value || "";
+  document.querySelectorAll(".compare-block").forEach((block) => {
+    const okScen = !scen || block.dataset.scenario === scen;
+    const okSeed = !seed || block.dataset.seed === seed;
+    block.hidden = !(okScen && okSeed);
+  });
+}
+
+function jumpToCompare(scenario) {
+  const sel = document.getElementById("cmp-scenario");
+  if (sel) {
+    sel.value = scenario;
+    filterCompare();
+  }
+  const section = document.getElementById("compare-section");
+  if (section) section.scrollIntoView({ behavior: "smooth" });
+}
+
+function openImageModal(el) {
+  const d = el.dataset;
+  const modal = document.getElementById("img-modal");
+  if (!modal) return;
+  document.getElementById("im-title").textContent = `${d.lora} · ep${d.epoch} · s${d.strength}`;
+  document.getElementById("im-img").src = d.path;
+  document.getElementById("im-link").href = d.path;
+  document.getElementById("im-open-btn").href = d.path;
+  document.getElementById("im-lora").textContent = d.lora || "–";
+  document.getElementById("im-ep-str").textContent = `Epoche ${d.epoch} · Stärke ${d.strength}`;
+  document.getElementById("im-scen-seed").textContent = `${d.scenario} · Seed ${d.seed}`;
+  document.getElementById("im-status").textContent = d.status || "–";
+  document.getElementById("im-utility").textContent = d.utility || "–";
+  document.getElementById("im-identity").textContent = d.identity || "–";
+  document.getElementById("im-adherence").textContent = d.adherence || "–";
+  document.getElementById("im-quality").textContent = d.quality || "–";
+  modal.classList.add("open");
+}
+
+function closeImageModal() {
+  const modal = document.getElementById("img-modal");
+  if (modal) modal.classList.remove("open");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeImageModal();
+});

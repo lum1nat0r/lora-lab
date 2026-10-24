@@ -47,6 +47,8 @@ class Sample:
     critical: bool = False
     epoch: int = 0
     strength: float = 0.0
+    image_id: int | None = None
+    path: str = ""
 
 
 @dataclass

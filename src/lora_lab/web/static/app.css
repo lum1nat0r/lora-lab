@@ -92,3 +92,38 @@ pre.log { background: var(--input); border: 1px solid var(--line); border-radius
 .filter-pill { cursor: pointer; padding: 3px 10px; font-size: 12px; }
 .filter-pill.active { border-color: var(--accent); color: var(--text); background: #24304a; }
 .inline-check { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--text); cursor: pointer; }
+.report-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.run-filter { display: flex; align-items: center; gap: 8px; }
+.winner-card { background: var(--panel); border: 1px solid #36507f; border-left: 4px solid var(--good);
+               border-radius: 10px; padding: 16px 18px; display: flex; justify-content: space-between;
+               gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.winner-info { flex: 1 1 320px; }
+.winner-info .k { color: var(--good); font-size: 11px; text-transform: uppercase; letter-spacing: .7px; font-weight: 600; }
+.winner-title { font-size: 20px; font-weight: 600; margin: 4px 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.winner-metrics { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; }
+.winner-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; flex: 1 1 420px; max-width: 500px; }
+.shot-clickable { cursor: pointer; transition: transform .12s, border-color .12s; }
+.shot-clickable:hover { border-color: var(--accent); transform: translateY(-1px); }
+.shot-pass { border-color: rgba(115, 209, 61, .45); }
+.shot-fail { border-color: rgba(255, 120, 117, .65); }
+.score-badge { float: right; font-weight: 600; }
+.score-badge.good { color: var(--good); }
+.score-badge.bad { color: var(--bad); }
+.gallery-row td { background: var(--input); padding: 14px; }
+.help-box { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--muted); }
+.help-box summary { cursor: pointer; color: var(--text); font-weight: 500; }
+.help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.matrix-cell { cursor: pointer; font-weight: 600; }
+.matrix-cell:hover { outline: 2px solid var(--accent); }
+.cell-sub { font-size: 10px; font-weight: 400; opacity: .75; }
+.compare-toolbar { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                   padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between;
+                   align-items: center; gap: 12px; flex-wrap: wrap; }
+.compare-block { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                 padding: 12px 14px; margin-bottom: 12px; }
+.compare-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+.img-modal-box { width: min(920px, 95vw); max-height: 90vh; }
+.img-modal-body { display: grid; grid-template-columns: minmax(260px, 1.3fr) 1fr; gap: 18px; align-items: start; padding: 16px; }
+.img-modal-preview img { width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); background: var(--input); }
+@media (max-width: 720px) { .img-modal-body { grid-template-columns: 1fr; } }
