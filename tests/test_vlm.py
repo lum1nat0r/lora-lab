@@ -150,3 +150,13 @@ def test_vlm_ping_checks_models_endpoint(tmp_path: Path) -> None:
     assert status["matched"] is True
     assert "test-vlm" in status["models"]
 
+
+
+def test_prompt_goes_into_request(tmp_path: Path) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        text = json.loads(request.content)["messages"][1]["content"][0]["text"]
+        assert text.startswith("The image was generated from this prompt:\nportrait, {json}")
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"a": true}'}}]})
+
+    judge, image = judge_with(handler, tmp_path)
+    assert judge.judge(image, ATTRS, prompt="portrait, {json}")["a"] is True

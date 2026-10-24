@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -12,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..config import ProjectConfig, load_project
 from ..db import Store
+from . import routes_loras, routes_review, routes_runs, routes_setup
 from .routes_loras import router as loras_router
 from .routes_review import router as review_router
 from .routes_runs import router as runs_router
@@ -29,6 +31,12 @@ def create_app(
     app = FastAPI(title="lora-lab", version="0.2.0")
     state = AppState(project, reload_fn)
     app.state.lora = state
+
+    # every router keeps its own template env; all of them render base.html
+    fizgig_url = os.environ.get("FIZGIG_URL") or "http://localhost"
+    for env in (TEMPLATES, routes_loras.templates, routes_review.templates,
+                routes_runs.templates, routes_setup.templates):
+        env.env.globals["fizgig_url"] = fizgig_url
 
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
     app.include_router(setup_router)

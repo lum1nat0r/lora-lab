@@ -14,7 +14,10 @@ from ..analyze.report import samples_from_store
 from ..analyze.stats import analyse_all
 from ..analyze.tournament import op_of, pick_pair, standings
 from ..db import Store
-from ..scorers.defects import DEFECT_QUESTIONS
+from ..scorers.defects import DEFECT_QUESTIONS, PROMPT_DEFECT_QUESTIONS
+
+# the label page shows the prompt, so a human can tick the prompt defects too
+LABEL_DEFECTS = {**DEFECT_QUESTIONS, **PROMPT_DEFECT_QUESTIONS}
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -72,7 +75,7 @@ def label_page(request: Request, run: str | None = None) -> HTMLResponse:
             "project": state.project,
             "image": image,
             "scenario": scenario,
-            "defects": DEFECT_QUESTIONS,
+            "defects": LABEL_DEFECTS,
             "calibration": result,
             "labelled": labelled,
             "runs": runs,
@@ -99,7 +102,7 @@ async def label_save(request: Request) -> RedirectResponse:
         if key.startswith("attr:") and value in ("yes", "no"):
             labels[key.removeprefix("attr:")] = value == "yes"
     # the defect list is a checklist: what is not ticked was looked at and absent
-    for key in DEFECT_QUESTIONS:
+    for key in LABEL_DEFECTS:
         labels[DEFECT_PREFIX + key] = form.get(f"defect:{key}") == "on"
 
     store = Store(state.project.db_path)

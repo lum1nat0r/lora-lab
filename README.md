@@ -4,13 +4,14 @@ A local lab for evaluating LoRAs with ComfyUI: it renders a balanced grid,
 scores each image on separate axes, and ranks candidates with confidence
 intervals instead of a single hand-assigned average.
 
-The subject can be anything a LoRA is trained for — a person, an object, a
-product, a style. Nothing in the tool assumes characters.
+lora-lab is built for **person LoRAs**: subject fidelity is measured on faces
+(YuNet + ArcFace), and the defect catalogue checks faces, hands and anatomy.
+Object, product or style LoRAs are not supported.
 
 > **Status:** rendering, persistence, the scoring core (subject calibration,
 > attribute adherence, VLM defect judge, health metrics), judge calibration
 > against a human gold set, blind A/B acceptance and paired run comparison are
-> implemented and tested. See [Roadmap](#roadmap) for what is left.
+> implemented and tested.
 
 ## Why
 
@@ -58,6 +59,7 @@ Most of the setup no longer needs a terminal. Open `http://<host>:8199/`:
 | **Report** | ranking, scenario matrix, strength/epoch curves, paired A-vs-B comparison |
 | **Gold-Set** | label images by hand (attributes + defects) to calibrate the VLM judge |
 | **Blind-A/B** | vote between two anonymous images of the same scenario and seed; Bradley-Terry standings |
+| **Fizgig ↗** | opens the Fizgig trainer UI in a new tab; set its address with `FIZGIG_URL` (default `http://localhost`) |
 
 Reference images are uploaded in the browser into a folder per subject; the
 built-in folder browser picks existing dataset folders instead. Existing
@@ -134,7 +136,7 @@ Each image gets separate axes, never one blended grade:
 | `identity` | ArcFace (ONNX) similarity to the subject's reference centroid, calibrated to P(same subject) | `None` when no face/reference, never 0 |
 | `critical` | face count from YuNet: more than one face is a critical defect | `None` if detection failed |
 | `adherence` | weighted share of satisfied attributes from the scenario checklist | `None` when nothing could be judged |
-| `defects` | VLM yes/no per catalogue defect, severity-weighted index; critical keys fail the image, severity ≥ 2 blocks a pass | `None` when nothing could be judged |
+| `defects` | VLM yes/no per catalogue defect, severity-weighted index; critical keys fail the image, severity ≥ 2 blocks a pass. `clothing_ignored`, `expression_mismatch` and `background_leak` are judged against the scenario prompt, which goes into the request | `None` when nothing could be judged |
 | `quality` | model-free health (resolution × sharpness); an aesthetic scorer can replace it | `None` if unreadable |
 
 Identity runs entirely on ONNX: YuNet for face detection, ArcFace
@@ -195,7 +197,9 @@ An empty `config` mount is seeded from the examples baked into the image, so a
 fresh deployment starts without copying files first.
 
 The host port is set with `LORA_LAB_PORT` (default 8199); the container always
-listens on 8099. `COMFYUI_URL` points at the existing ComfyUI container. When its output folder
+listens on 8099. `COMFYUI_URL` points at the existing ComfyUI container.
+`FIZGIG_URL` is the address of the nav link to Fizgig; the browser opens it, so
+use an address your machine can reach. When its output folder
 is mounted (`COMFY_OUTPUT_DIR`), images are read from disk instead of over HTTP.
 The mount contract and the container paths for subjects, references and
 datasets are in [docs/PATHS.md](docs/PATHS.md).
@@ -219,13 +223,11 @@ src/lora_lab/
 
 ## Roadmap
 
-Done: judge calibration against a gold set, VLM defect judge, blind A/B with
-Bradley-Terry, paired comparison of operating points across runs.
+Done: judge calibration against a gold set, VLM defect judge, prompt-aware
+defects, blind A/B with Bradley-Terry, paired comparison of operating points
+across runs.
 
-1. **Loop** — trigger a new training run from lora-lab itself. Rendering it
-   on the identical grid and comparing it paired already works.
-2. **Prompt-aware defects** — `clothing_ignored`, `expression_mismatch` and
-   `background_leak` need the scenario prompt in the judge request.
+Training stays in Fizgig; lora-lab only links to it.
 
 ## License
 

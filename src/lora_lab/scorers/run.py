@@ -44,8 +44,10 @@ def build_default_scorers(
     if judge is not None:
         attributes = {s.id: s.attributes for s in project.scenarios.values()}
         scorers.append(AdherenceScorer(judge, attributes))
-        # a second request per image; keeps the axes separately skippable
-        scorers.append(DefectScorer(judge))
+        # a second request per image; keeps the axes separately skippable.
+        # strip_trigger("{trigger}") drops the placeholder: the token means nothing to a judge
+        prompts = {s.id: s.strip_trigger("{trigger}") for s in project.scenarios.values()}
+        scorers.append(DefectScorer(judge, prompts))
 
     if not identity:
         return scorers, None

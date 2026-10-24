@@ -33,7 +33,9 @@ class Judge(Protocol):
     name: str
     version: str
 
-    def judge(self, image: ImageRef, attributes: Sequence[Any]) -> dict[str, bool | None]: ...
+    def judge(
+        self, image: ImageRef, attributes: Sequence[Any], prompt: str | None = None
+    ) -> dict[str, bool | None]: ...
 
 
 def weighted_adherence(
@@ -120,7 +122,9 @@ class JsonVerdicts:
         raw = json.loads(Path(self.path).read_text(encoding="utf-8"))
         self._data = {str(k): dict(v) for k, v in raw.items()}
 
-    def judge(self, image: ImageRef, attributes: Sequence[Any]) -> dict[str, bool | None]:
+    def judge(
+        self, image: ImageRef, attributes: Sequence[Any], prompt: str | None = None
+    ) -> dict[str, bool | None]:
         candidates = [
             image.path,
             Path(image.path).name,

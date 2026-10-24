@@ -38,9 +38,7 @@ CATALOG: dict[str, int] = {
 
 CRITICAL = {"multi_face", "extra_limb", "anatomy_error", "multi_image", "duplicate_subject"}
 
-# What a judge can decide from the image alone. clothing_ignored,
-# expression_mismatch and background_leak depend on the prompt; the
-# scenario attributes cover those through adherence.
+# What a judge can decide from the image alone.
 DEFECT_QUESTIONS: dict[str, str] = {
     "multi_face": "Does the image show more than one face of the main subject?",
     "extra_limb": "Does any person or animal have an extra arm or leg?",
@@ -52,6 +50,22 @@ DEFECT_QUESTIONS: dict[str, str] = {
     "multi_image": "Is the image split into several panels or a collage?",
     "duplicate_subject": "Does the main subject appear twice or more?",
     "blur_lowres": "Is the image noticeably blurry, low resolution or out of focus?",
+}
+
+# Only decidable against the scenario prompt; asked when one is known.
+PROMPT_DEFECT_QUESTIONS: dict[str, str] = {
+    "clothing_ignored": (
+        "Does the clothing contradict the prompt (wrong garment, wrong colour or missing)?"
+        " Answer null if the prompt names no clothing."
+    ),
+    "expression_mismatch": (
+        "Does the facial expression clearly differ from the one the prompt asks for?"
+        " Answer null if the prompt names no expression."
+    ),
+    "background_leak": (
+        "Does the background or setting contradict the prompt, for example a"
+        " training-photo backdrop instead of the requested scene?"
+    ),
 }
 
 
@@ -173,6 +187,7 @@ __all__ = [
     "CATALOG",
     "CRITICAL",
     "DEFECT_QUESTIONS",
+    "PROMPT_DEFECT_QUESTIONS",
     "DefectScorer",
     "HealthScorer",
     "defect_index",
@@ -239,21 +254,30 @@ class DefectScorer:
     ``meta`` keeps which keys were detected, judged absent or left open, so
     the report can derive critical failures and the gold set can check the
     judge per key.
+
+    With ``prompts_by_scenario`` the scenario prompt goes into the request and
+    the prompt-dependent keys are asked as well.
     """
 
     name = "defects"
     version = "v1"
     axes = ("defects",)
 
-    def __init__(self, judge) -> None:
+    def __init__(self, judge, prompts_by_scenario: dict[str, str] | None = None) -> None:
         self.judge = judge
+        self.prompts_by_scenario = prompts_by_scenario or {}
         self.questions = [DefectQuestion(key, text) for key, text in DEFECT_QUESTIONS.items()]
+        self.prompt_questions = [
+            DefectQuestion(key, text) for key, text in PROMPT_DEFECT_QUESTIONS.items()
+        ]
 
     def score(self, image: ImageRef) -> list[Score]:
-        verdicts = self.judge.judge(image, self.questions)
-        detected = [q.id for q in self.questions if verdicts.get(q.id) is True]
-        absent = [q.id for q in self.questions if verdicts.get(q.id) is False]
-        missing = [q.id for q in self.questions if verdicts.get(q.id) is None]
+        prompt = self.prompts_by_scenario.get(image.scenario)
+        questions = self.questions + self.prompt_questions if prompt else self.questions
+        verdicts = self.judge.judge(image, questions, prompt=prompt)
+        detected = [q.id for q in questions if verdicts.get(q.id) is True]
+        absent = [q.id for q in questions if verdicts.get(q.id) is False]
+        missing = [q.id for q in questions if verdicts.get(q.id) is None]
         judged = bool(detected or absent)
         return [
             Score(

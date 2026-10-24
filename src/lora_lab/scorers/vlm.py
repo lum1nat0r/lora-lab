@@ -39,6 +39,11 @@ Questions:
 {questions}
 """
 
+PROMPT_CONTEXT = """The image was generated from this prompt:
+{prompt}
+
+"""
+
 
 @dataclass
 class VLMSettings:
@@ -121,10 +126,15 @@ class VLMJudge:
         }
 
     # -- protocol ----------------------------------------------------------
-    def judge(self, image: ImageRef, attributes: Sequence[Any]) -> dict[str, bool | None]:
+    def judge(
+        self, image: ImageRef, attributes: Sequence[Any], prompt: str | None = None
+    ) -> dict[str, bool | None]:
         if not attributes:
             return {}
         questions = "\n".join(f"- {a.id}: {a.question}" for a in attributes)
+        text = INSTRUCTIONS.format(questions=questions)
+        if prompt:
+            text = PROMPT_CONTEXT.format(prompt=prompt) + text
         body = {
             "model": self.settings.model,
             "temperature": self.settings.temperature,
@@ -134,7 +144,7 @@ class VLMJudge:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": INSTRUCTIONS.format(questions=questions)},
+                        {"type": "text", "text": text},
                         {"type": "image_url", "image_url": {"url": self._data_url(image.path)}},
                     ],
                 },

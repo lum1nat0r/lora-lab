@@ -4,7 +4,7 @@
   "project": {
     "name": "lora-lab",
     "is_monorepo": false,
-    "total_files": 77,
+    "total_files": 83,
     "entry_points": [
       "src/lora_lab/cli.py",
       "src/lora_lab/__init__.py",
@@ -201,6 +201,24 @@
       "summary": ""
     },
     {
+      "id": "class:src/lora_lab/scorers/defects.py:DefectQuestion",
+      "type": "class",
+      "filePath": "src/lora_lab/scorers/defects.py",
+      "name": "DefectQuestion",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "class:src/lora_lab/scorers/defects.py:DefectScorer",
+      "type": "class",
+      "filePath": "src/lora_lab/scorers/defects.py",
+      "name": "DefectScorer",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
       "id": "class:src/lora_lab/scorers/defects.py:FaceCountScorer",
       "type": "class",
       "filePath": "src/lora_lab/scorers/defects.py",
@@ -271,8 +289,8 @@
       "symbolCount": 0,
       "lineCount": 2,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 5,
+      "pagerank": 0.005041,
+      "communityId": 7,
       "tags": [
         "config"
       ],
@@ -286,8 +304,8 @@
       "symbolCount": 0,
       "lineCount": 13,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 7,
+      "pagerank": 0.005041,
+      "communityId": 9,
       "tags": [
         "config",
         "ci"
@@ -302,8 +320,8 @@
       "symbolCount": 0,
       "lineCount": 25,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 8,
+      "pagerank": 0.005041,
+      "communityId": 10,
       "tags": [
         "config",
         "ci"
@@ -316,12 +334,13 @@
       "filePath": "CHANGELOG.md",
       "language": "markdown",
       "symbolCount": 0,
-      "lineCount": 67,
-      "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 20,
+      "lineCount": 100,
+      "complexity": "moderate",
+      "pagerank": 0.005041,
+      "communityId": 24,
       "tags": [],
-      "summary": "Release history and notable changes."
+      "summary": "Release history and notable changes.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:README.md",
@@ -329,12 +348,13 @@
       "filePath": "README.md",
       "language": "markdown",
       "symbolCount": 0,
-      "lineCount": 216,
+      "lineCount": 256,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 21,
+      "pagerank": 0.005041,
+      "communityId": 25,
       "tags": [],
-      "summary": "Project overview and entry point for new readers."
+      "summary": "Project overview and entry point for new readers.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:config/grid.yaml",
@@ -344,8 +364,8 @@
       "symbolCount": 0,
       "lineCount": 36,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 22,
+      "pagerank": 0.005041,
+      "communityId": 26,
       "tags": [
         "config"
       ],
@@ -359,8 +379,8 @@
       "symbolCount": 0,
       "lineCount": 9,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 23,
+      "pagerank": 0.005041,
+      "communityId": 27,
       "tags": [
         "config"
       ],
@@ -374,8 +394,8 @@
       "symbolCount": 0,
       "lineCount": 71,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 24,
+      "pagerank": 0.005041,
+      "communityId": 28,
       "tags": [
         "config"
       ],
@@ -389,8 +409,8 @@
       "symbolCount": 0,
       "lineCount": 24,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 25,
+      "pagerank": 0.005041,
+      "communityId": 29,
       "tags": [
         "config"
       ],
@@ -404,8 +424,8 @@
       "symbolCount": 4,
       "lineCount": 46,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 27,
+      "pagerank": 0.005041,
+      "communityId": 31,
       "tags": [
         "config",
         "infra"
@@ -420,8 +440,8 @@
       "symbolCount": 0,
       "lineCount": 46,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 28,
+      "pagerank": 0.005041,
+      "communityId": 32,
       "tags": [
         "config",
         "infra"
@@ -436,8 +456,8 @@
       "symbolCount": 0,
       "lineCount": 14,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 29,
+      "pagerank": 0.005041,
+      "communityId": 33,
       "tags": [],
       "summary": "Docs & Tooling module entrypoint."
     },
@@ -449,8 +469,8 @@
       "symbolCount": 0,
       "lineCount": 129,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 30,
+      "pagerank": 0.005041,
+      "communityId": 34,
       "tags": [],
       "summary": "Documentation: PATHS.md."
     },
@@ -462,8 +482,8 @@
       "symbolCount": 0,
       "lineCount": 25,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 31,
+      "pagerank": 0.005041,
+      "communityId": 35,
       "tags": [
         "config"
       ],
@@ -477,8 +497,8 @@
       "symbolCount": 1,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 32,
+      "pagerank": 0.005041,
+      "communityId": 36,
       "tags": [
         "entry_point"
       ],
@@ -492,8 +512,8 @@
       "symbolCount": 0,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 0,
+      "pagerank": 0.005041,
+      "communityId": 1,
       "tags": [
         "entry_point"
       ],
@@ -507,36 +527,66 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 33,
+      "pagerank": 0.005041,
+      "communityId": 37,
       "tags": [],
       "summary": "Application module __init__."
+    },
+    {
+      "id": "file:src/lora_lab/analyze/agreement.py",
+      "type": "file",
+      "filePath": "src/lora_lab/analyze/agreement.py",
+      "language": "python",
+      "symbolCount": 9,
+      "lineCount": 97,
+      "complexity": "moderate",
+      "pagerank": 0.007101,
+      "communityId": 2,
+      "tags": [],
+      "summary": "Application module agreement defining cohen_kappa, judge_verdicts, _status.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/analyze/report.py",
       "type": "file",
       "filePath": "src/lora_lab/analyze/report.py",
       "language": "python",
-      "symbolCount": 11,
-      "lineCount": 291,
+      "symbolCount": 13,
+      "lineCount": 343,
       "complexity": "moderate",
-      "pagerank": 0.007223,
-      "communityId": 0,
+      "pagerank": 0.00734,
+      "communityId": 2,
       "tags": [],
-      "summary": "Application module report defining _row_meta, _format_adherence_details, samples_from_store."
+      "summary": "Application module report defining _row_meta, _format_adherence_details, samples_from_store.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/analyze/stats.py",
       "type": "file",
       "filePath": "src/lora_lab/analyze/stats.py",
       "language": "python",
-      "symbolCount": 19,
-      "lineCount": 274,
+      "symbolCount": 22,
+      "lineCount": 335,
       "complexity": "complex",
-      "pagerank": 0.01019,
-      "communityId": 0,
+      "pagerank": 0.010693,
+      "communityId": 2,
       "tags": [],
-      "summary": "Application module stats defining Sample, LoraResult, mean."
+      "summary": "Application module stats defining Sample, LoraResult, mean.",
+      "primaryOwner": "Thomas Lumesberger"
+    },
+    {
+      "id": "file:src/lora_lab/analyze/tournament.py",
+      "type": "file",
+      "filePath": "src/lora_lab/analyze/tournament.py",
+      "language": "python",
+      "symbolCount": 4,
+      "lineCount": 135,
+      "complexity": "moderate",
+      "pagerank": 0.005727,
+      "communityId": 2,
+      "tags": [],
+      "summary": "Application module tournament defining op_of, pick_pair, bradley_terry.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/audit.py",
@@ -546,8 +596,8 @@
       "symbolCount": 7,
       "lineCount": 87,
       "complexity": "moderate",
-      "pagerank": 0.0066,
-      "communityId": 0,
+      "pagerank": 0.006089,
+      "communityId": 1,
       "tags": [],
       "summary": "Application module audit defining _sha256, audit_dataset, _aspect."
     },
@@ -556,15 +606,16 @@
       "type": "file",
       "filePath": "src/lora_lab/cli.py",
       "language": "python",
-      "symbolCount": 14,
-      "lineCount": 608,
+      "symbolCount": 16,
+      "lineCount": 721,
       "complexity": "complex",
-      "pagerank": 0.011451,
-      "communityId": 0,
+      "pagerank": 0.01061,
+      "communityId": 1,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module cli defining main, _grid_hash, _load_api."
+      "summary": "Application module cli defining main, _grid_hash, _load_api.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/comfy/__init__.py",
@@ -574,8 +625,8 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 34,
+      "pagerank": 0.005041,
+      "communityId": 38,
       "tags": [],
       "summary": "Application module __init__."
     },
@@ -587,8 +638,8 @@
       "symbolCount": 16,
       "lineCount": 129,
       "complexity": "complex",
-      "pagerank": 0.006815,
-      "communityId": 2,
+      "pagerank": 0.006286,
+      "communityId": 3,
       "tags": [],
       "summary": "Application module client defining ComfyError, ComfyClient, __init__."
     },
@@ -600,8 +651,8 @@
       "symbolCount": 7,
       "lineCount": 101,
       "complexity": "moderate",
-      "pagerank": 0.006469,
-      "communityId": 2,
+      "pagerank": 0.00599,
+      "communityId": 3,
       "tags": [],
       "summary": "Application module objectinfo defining _decl_type, widget_columns, map_widget_values."
     },
@@ -613,8 +664,8 @@
       "symbolCount": 17,
       "lineCount": 298,
       "complexity": "complex",
-      "pagerank": 0.007266,
-      "communityId": 2,
+      "pagerank": 0.006704,
+      "communityId": 3,
       "tags": [],
       "summary": "Application module workflow defining WorkflowError, load_workflow, is_ui_format."
     },
@@ -626,8 +677,8 @@
       "symbolCount": 21,
       "lineCount": 296,
       "complexity": "complex",
-      "pagerank": 0.021108,
-      "communityId": 1,
+      "pagerank": 0.019837,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module config defining Binding, WorkflowBindings, ProfileConfig."
     },
@@ -636,13 +687,14 @@
       "type": "file",
       "filePath": "src/lora_lab/db.py",
       "language": "python",
-      "symbolCount": 31,
-      "lineCount": 515,
+      "symbolCount": 38,
+      "lineCount": 628,
       "complexity": "complex",
-      "pagerank": 0.011172,
+      "pagerank": 0.01363,
       "communityId": 2,
       "tags": [],
-      "summary": "Application module db defining Store, __init__, _migrate_jobs_unique."
+      "summary": "Application module db defining Store, __init__, _migrate_jobs_unique.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/discover.py",
@@ -652,8 +704,8 @@
       "symbolCount": 17,
       "lineCount": 215,
       "complexity": "complex",
-      "pagerank": 0.00679,
-      "communityId": 0,
+      "pagerank": 0.006263,
+      "communityId": 1,
       "tags": [],
       "summary": "Application module discover defining _normalise, _match_subject, slug."
     },
@@ -665,8 +717,8 @@
       "symbolCount": 6,
       "lineCount": 86,
       "complexity": "moderate",
-      "pagerank": 0.012035,
-      "communityId": 1,
+      "pagerank": 0.011387,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module grid defining Job, is_baseline, prefix."
     },
@@ -675,13 +727,14 @@
       "type": "file",
       "filePath": "src/lora_lab/heldout.py",
       "language": "python",
-      "symbolCount": 6,
-      "lineCount": 59,
+      "symbolCount": 8,
+      "lineCount": 103,
       "complexity": "moderate",
-      "pagerank": 0.006654,
-      "communityId": 0,
+      "pagerank": 0.006403,
+      "communityId": 1,
       "tags": [],
-      "summary": "Application module heldout defining list_images, count_images, _sha256."
+      "summary": "Application module heldout defining list_images, count_images, _sha256.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/importers/__init__.py",
@@ -691,8 +744,8 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 35,
+      "pagerank": 0.005041,
+      "communityId": 39,
       "tags": [],
       "summary": "Application module __init__."
     },
@@ -704,8 +757,8 @@
       "symbolCount": 11,
       "lineCount": 135,
       "complexity": "moderate",
-      "pagerank": 0.007579,
-      "communityId": 0,
+      "pagerank": 0.006992,
+      "communityId": 1,
       "tags": [],
       "summary": "Application module fizgig defining SafetensorsError, read_header, read_metadata."
     },
@@ -717,8 +770,8 @@
       "symbolCount": 6,
       "lineCount": 182,
       "complexity": "moderate",
-      "pagerank": 0.007228,
-      "communityId": 2,
+      "pagerank": 0.00667,
+      "communityId": 3,
       "tags": [],
       "summary": "Application module runner defining RunStats, build_prompt, run_jobs."
     },
@@ -730,8 +783,8 @@
       "symbolCount": 0,
       "lineCount": 1,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 36,
+      "pagerank": 0.005041,
+      "communityId": 40,
       "tags": [],
       "summary": "Application module __init__."
     },
@@ -743,8 +796,8 @@
       "symbolCount": 9,
       "lineCount": 103,
       "complexity": "moderate",
-      "pagerank": 0.00695,
-      "communityId": 3,
+      "pagerank": 0.006411,
+      "communityId": 4,
       "tags": [],
       "summary": "Application module adherence defining Judge, judge, weighted_adherence."
     },
@@ -756,8 +809,8 @@
       "symbolCount": 6,
       "lineCount": 21,
       "complexity": "moderate",
-      "pagerank": 0.012039,
-      "communityId": 3,
+      "pagerank": 0.011351,
+      "communityId": 4,
       "tags": [],
       "summary": "Application module base defining ImageRef, Score, Scorer."
     },
@@ -766,24 +819,25 @@
       "type": "file",
       "filePath": "src/lora_lab/scorers/defects.py",
       "language": "python",
-      "symbolCount": 14,
-      "lineCount": 155,
-      "complexity": "moderate",
-      "pagerank": 0.00968,
-      "communityId": 3,
+      "symbolCount": 19,
+      "lineCount": 223,
+      "complexity": "complex",
+      "pagerank": 0.011188,
+      "communityId": 4,
       "tags": [],
-      "summary": "Application module defects defining defect_index, has_critical, health."
+      "summary": "Application module defects defining defect_index, has_critical, health.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/scorers/identity.py",
       "type": "file",
       "filePath": "src/lora_lab/scorers/identity.py",
       "language": "python",
-      "symbolCount": 37,
-      "lineCount": 398,
+      "symbolCount": 38,
+      "lineCount": 406,
       "complexity": "complex",
-      "pagerank": 0.009303,
-      "communityId": 3,
+      "pagerank": 0.010149,
+      "communityId": 4,
       "tags": [],
       "summary": "Application module identity defining cosine, centroid, _sigmoid.",
       "primaryOwner": "Thomas Lumesberger"
@@ -794,14 +848,15 @@
       "filePath": "src/lora_lab/scorers/run.py",
       "language": "python",
       "symbolCount": 2,
-      "lineCount": 149,
+      "lineCount": 152,
       "complexity": "moderate",
-      "pagerank": 0.007742,
-      "communityId": 3,
+      "pagerank": 0.007146,
+      "communityId": 4,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module run defining build_default_scorers, score_run."
+      "summary": "Application module run defining build_default_scorers, score_run.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/scorers/vlm.py",
@@ -811,7 +866,7 @@
       "symbolCount": 19,
       "lineCount": 204,
       "complexity": "complex",
-      "pagerank": 0.007378,
+      "pagerank": 0.006809,
       "communityId": 3,
       "tags": [],
       "summary": "Application module vlm defining VLMSettings, endpoint, models_endpoint."
@@ -824,8 +879,8 @@
       "symbolCount": 0,
       "lineCount": 0,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 37,
+      "pagerank": 0.005041,
+      "communityId": 41,
       "tags": [],
       "summary": "Application module __init__."
     },
@@ -834,15 +889,16 @@
       "type": "file",
       "filePath": "src/lora_lab/web/app.py",
       "language": "python",
-      "symbolCount": 5,
-      "lineCount": 238,
+      "symbolCount": 6,
+      "lineCount": 272,
       "complexity": "moderate",
-      "pagerank": 0.00687,
-      "communityId": 1,
+      "pagerank": 0.006606,
+      "communityId": 0,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module app defining create_app, _run_id_from_name, serve."
+      "summary": "Application module app defining create_app, _run_id_from_name, serve.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/broken.py",
@@ -852,8 +908,8 @@
       "symbolCount": 3,
       "lineCount": 70,
       "complexity": "simple",
-      "pagerank": 0.007371,
-      "communityId": 0,
+      "pagerank": 0.006803,
+      "communityId": 1,
       "tags": [],
       "summary": "Application module broken defining create_broken_app, serve_broken."
     },
@@ -865,10 +921,24 @@
       "symbolCount": 8,
       "lineCount": 151,
       "complexity": "moderate",
-      "pagerank": 0.005857,
-      "communityId": 1,
+      "pagerank": 0.005415,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module routes_loras defining _state, _flash, _all_items."
+    },
+    {
+      "id": "file:src/lora_lab/web/routes_review.py",
+      "type": "file",
+      "filePath": "src/lora_lab/web/routes_review.py",
+      "language": "python",
+      "symbolCount": 11,
+      "lineCount": 151,
+      "complexity": "moderate",
+      "pagerank": 0.005415,
+      "communityId": 2,
+      "tags": [],
+      "summary": "Application module routes_review defining _state, _run_id, _back.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/routes_runs.py",
@@ -878,8 +948,8 @@
       "symbolCount": 10,
       "lineCount": 99,
       "complexity": "moderate",
-      "pagerank": 0.005857,
-      "communityId": 1,
+      "pagerank": 0.005415,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module routes_runs defining _state, _flash, _plan."
     },
@@ -891,8 +961,8 @@
       "symbolCount": 29,
       "lineCount": 558,
       "complexity": "complex",
-      "pagerank": 0.005857,
-      "communityId": 1,
+      "pagerank": 0.005415,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module routes_setup defining _state, _flash, _allowed_roots."
     },
@@ -904,8 +974,8 @@
       "symbolCount": 12,
       "lineCount": 170,
       "complexity": "moderate",
-      "pagerank": 0.006685,
-      "communityId": 2,
+      "pagerank": 0.006191,
+      "communityId": 3,
       "tags": [],
       "summary": "Application module runner defining Cancelled, RunManager, __init__."
     },
@@ -917,8 +987,8 @@
       "symbolCount": 5,
       "lineCount": 39,
       "complexity": "moderate",
-      "pagerank": 0.005857,
-      "communityId": 1,
+      "pagerank": 0.005415,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module state defining AppState, __init__, reload."
     },
@@ -928,14 +998,15 @@
       "filePath": "src/lora_lab/web/static/app.js",
       "language": "javascript",
       "symbolCount": 26,
-      "lineCount": 286,
+      "lineCount": 291,
       "complexity": "complex",
-      "pagerank": 0.010064,
-      "communityId": 4,
+      "pagerank": 0.009325,
+      "communityId": 5,
       "tags": [
         "entry_point"
       ],
-      "summary": "Application module app defining addAttrRow, escapeHtml, openBrowser."
+      "summary": "Application module app defining addAttrRow, escapeHtml, openBrowser.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/store.py",
@@ -945,8 +1016,8 @@
       "symbolCount": 26,
       "lineCount": 223,
       "complexity": "complex",
-      "pagerank": 0.006742,
-      "communityId": 1,
+      "pagerank": 0.006218,
+      "communityId": 0,
       "tags": [],
       "summary": "Application module store defining ConfigError, local_dir, local_path."
     },
@@ -956,12 +1027,27 @@
       "filePath": "src/lora_lab/web/templates/base.html",
       "language": "html",
       "symbolCount": 0,
-      "lineCount": 26,
+      "lineCount": 27,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 4,
+      "pagerank": 0.005041,
+      "communityId": 5,
       "tags": [],
-      "summary": "Application module base."
+      "summary": "Application module base.",
+      "primaryOwner": "Thomas Lumesberger"
+    },
+    {
+      "id": "file:src/lora_lab/web/templates/duel.html",
+      "type": "file",
+      "filePath": "src/lora_lab/web/templates/duel.html",
+      "language": "html",
+      "symbolCount": 0,
+      "lineCount": 90,
+      "complexity": "simple",
+      "pagerank": 0.005041,
+      "communityId": 43,
+      "tags": [],
+      "summary": "Application module duel.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/templates/grid.html",
@@ -971,8 +1057,8 @@
       "symbolCount": 0,
       "lineCount": 76,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 39,
+      "pagerank": 0.005041,
+      "communityId": 44,
       "tags": [],
       "summary": "Application module grid."
     },
@@ -984,10 +1070,24 @@
       "symbolCount": 0,
       "lineCount": 50,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 40,
+      "pagerank": 0.005041,
+      "communityId": 45,
       "tags": [],
       "summary": "Application module index."
+    },
+    {
+      "id": "file:src/lora_lab/web/templates/label.html",
+      "type": "file",
+      "filePath": "src/lora_lab/web/templates/label.html",
+      "language": "html",
+      "symbolCount": 0,
+      "lineCount": 99,
+      "complexity": "simple",
+      "pagerank": 0.005041,
+      "communityId": 46,
+      "tags": [],
+      "summary": "Application module label.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/templates/loras.html",
@@ -997,8 +1097,8 @@
       "symbolCount": 0,
       "lineCount": 146,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 41,
+      "pagerank": 0.005041,
+      "communityId": 47,
       "tags": [],
       "summary": "Application module loras."
     },
@@ -1010,8 +1110,8 @@
       "symbolCount": 0,
       "lineCount": 59,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 42,
+      "pagerank": 0.005041,
+      "communityId": 48,
       "tags": [],
       "summary": "Application module refs."
     },
@@ -1021,12 +1121,13 @@
       "filePath": "src/lora_lab/web/templates/report.html",
       "language": "html",
       "symbolCount": 0,
-      "lineCount": 509,
+      "lineCount": 615,
       "complexity": "complex",
-      "pagerank": 0.00544,
-      "communityId": 43,
+      "pagerank": 0.005041,
+      "communityId": 49,
       "tags": [],
-      "summary": "Application module report."
+      "summary": "Application module report.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:src/lora_lab/web/templates/run.html",
@@ -1036,8 +1137,8 @@
       "symbolCount": 0,
       "lineCount": 74,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 44,
+      "pagerank": 0.005041,
+      "communityId": 50,
       "tags": [],
       "summary": "Application module run."
     },
@@ -1049,8 +1150,8 @@
       "symbolCount": 0,
       "lineCount": 66,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 45,
+      "pagerank": 0.005041,
+      "communityId": 51,
       "tags": [],
       "summary": "Application module scenario_form."
     },
@@ -1062,8 +1163,8 @@
       "symbolCount": 0,
       "lineCount": 109,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 46,
+      "pagerank": 0.005041,
+      "communityId": 52,
       "tags": [],
       "summary": "Application module setup."
     },
@@ -1075,8 +1176,8 @@
       "symbolCount": 0,
       "lineCount": 71,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 47,
+      "pagerank": 0.005041,
+      "communityId": 53,
       "tags": [],
       "summary": "Application module subject_form."
     },
@@ -1088,8 +1189,8 @@
       "symbolCount": 3,
       "lineCount": 7,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 1,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1103,8 +1204,8 @@
       "symbolCount": 1,
       "lineCount": 15,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 0,
+      "pagerank": 0.005041,
+      "communityId": 1,
       "tags": [
         "test"
       ],
@@ -1118,7 +1219,7 @@
       "symbolCount": 3,
       "lineCount": 52,
       "complexity": "simple",
-      "pagerank": 0.00544,
+      "pagerank": 0.005041,
       "communityId": 0,
       "tags": [
         "test"
@@ -1133,8 +1234,8 @@
       "symbolCount": 2,
       "lineCount": 20,
       "complexity": "simple",
-      "pagerank": 0.00544,
-      "communityId": 28,
+      "pagerank": 0.005041,
+      "communityId": 32,
       "tags": [
         "test"
       ],
@@ -1148,8 +1249,8 @@
       "symbolCount": 8,
       "lineCount": 134,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 1,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1163,8 +1264,8 @@
       "symbolCount": 12,
       "lineCount": 205,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 0,
+      "pagerank": 0.005041,
+      "communityId": 1,
       "tags": [
         "test"
       ],
@@ -1178,8 +1279,8 @@
       "symbolCount": 8,
       "lineCount": 89,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 0,
+      "pagerank": 0.005041,
+      "communityId": 1,
       "tags": [
         "test"
       ],
@@ -1193,8 +1294,8 @@
       "symbolCount": 11,
       "lineCount": 99,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 1,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1208,12 +1309,28 @@
       "symbolCount": 3,
       "lineCount": 104,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 3,
+      "pagerank": 0.005041,
+      "communityId": 4,
       "tags": [
         "test"
       ],
       "summary": "Tests for pipeline."
+    },
+    {
+      "id": "file:tests/test_review.py",
+      "type": "file",
+      "filePath": "tests/test_review.py",
+      "language": "python",
+      "symbolCount": 21,
+      "lineCount": 277,
+      "complexity": "complex",
+      "pagerank": 0.005041,
+      "communityId": 2,
+      "tags": [
+        "test"
+      ],
+      "summary": "Tests for review.",
+      "primaryOwner": "Thomas Lumesberger"
     },
     {
       "id": "file:tests/test_scoring.py",
@@ -1221,10 +1338,10 @@
       "filePath": "tests/test_scoring.py",
       "language": "python",
       "symbolCount": 29,
-      "lineCount": 285,
+      "lineCount": 286,
       "complexity": "complex",
-      "pagerank": 0.00544,
-      "communityId": 3,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1239,8 +1356,8 @@
       "symbolCount": 12,
       "lineCount": 314,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 1,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1254,8 +1371,8 @@
       "symbolCount": 14,
       "lineCount": 125,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 3,
+      "pagerank": 0.005041,
+      "communityId": 4,
       "tags": [
         "test"
       ],
@@ -1269,8 +1386,8 @@
       "symbolCount": 15,
       "lineCount": 127,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 3,
+      "pagerank": 0.005041,
+      "communityId": 4,
       "tags": [
         "test"
       ],
@@ -1284,8 +1401,8 @@
       "symbolCount": 3,
       "lineCount": 105,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 3,
+      "pagerank": 0.005041,
+      "communityId": 0,
       "tags": [
         "test"
       ],
@@ -1299,8 +1416,8 @@
       "symbolCount": 11,
       "lineCount": 136,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 2,
+      "pagerank": 0.005041,
+      "communityId": 3,
       "tags": [
         "test"
       ],
@@ -1314,8 +1431,8 @@
       "symbolCount": 0,
       "lineCount": 271,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 48,
+      "pagerank": 0.005041,
+      "communityId": 54,
       "tags": [
         "config"
       ],
@@ -1329,12 +1446,21 @@
       "symbolCount": 0,
       "lineCount": 265,
       "complexity": "moderate",
-      "pagerank": 0.00544,
-      "communityId": 49,
+      "pagerank": 0.005041,
+      "communityId": 55,
       "tags": [
         "config"
       ],
       "summary": "Configuration file: example-sft-reference.json."
+    },
+    {
+      "id": "function:src/lora_lab/analyze/stats.py:_two_level_bootstrap",
+      "type": "function",
+      "filePath": "src/lora_lab/analyze/stats.py",
+      "name": "_two_level_bootstrap",
+      "language": "python",
+      "tags": [],
+      "summary": ""
     },
     {
       "id": "function:src/lora_lab/analyze/stats.py:analyse_all",
@@ -1382,6 +1508,15 @@
       "summary": ""
     },
     {
+      "id": "function:src/lora_lab/analyze/stats.py:is_critical",
+      "type": "function",
+      "filePath": "src/lora_lab/analyze/stats.py",
+      "name": "is_critical",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
       "id": "function:src/lora_lab/analyze/stats.py:is_fail",
       "type": "function",
       "filePath": "src/lora_lab/analyze/stats.py",
@@ -1404,6 +1539,15 @@
       "type": "function",
       "filePath": "src/lora_lab/analyze/stats.py",
       "name": "mean",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/analyze/stats.py:paired_difference",
+      "type": "function",
+      "filePath": "src/lora_lab/analyze/stats.py",
+      "name": "paired_difference",
       "language": "python",
       "tags": [],
       "summary": ""
@@ -1472,10 +1616,28 @@
       "summary": ""
     },
     {
+      "id": "function:src/lora_lab/cli.py:_calibrate",
+      "type": "function",
+      "filePath": "src/lora_lab/cli.py",
+      "name": "_calibrate",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
       "id": "function:src/lora_lab/cli.py:_check_refs",
       "type": "function",
       "filePath": "src/lora_lab/cli.py",
       "name": "_check_refs",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/cli.py:_compare",
+      "type": "function",
+      "filePath": "src/lora_lab/cli.py",
+      "name": "_compare",
       "language": "python",
       "tags": [],
       "summary": ""
@@ -1742,6 +1904,15 @@
       "summary": ""
     },
     {
+      "id": "function:src/lora_lab/db.py:add_comparison",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "add_comparison",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
       "id": "function:src/lora_lab/db.py:add_image",
       "type": "function",
       "filePath": "src/lora_lab/db.py",
@@ -1782,6 +1953,15 @@
       "type": "function",
       "filePath": "src/lora_lab/db.py",
       "name": "commit",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/db.py:comparisons",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "comparisons",
       "language": "python",
       "tags": [],
       "summary": ""
@@ -1859,6 +2039,42 @@
       "summary": ""
     },
     {
+      "id": "function:src/lora_lab/db.py:judge_meta",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "judge_meta",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/db.py:label_count",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "label_count",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/db.py:labels",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "labels",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/db.py:next_label_image",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "next_label_image",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
       "id": "function:src/lora_lab/db.py:pending_jobs",
       "type": "function",
       "filePath": "src/lora_lab/db.py",
@@ -1926,6 +2142,15 @@
       "type": "function",
       "filePath": "src/lora_lab/db.py",
       "name": "scored_images",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/db.py:set_labels",
+      "type": "function",
+      "filePath": "src/lora_lab/db.py",
+      "name": "set_labels",
       "language": "python",
       "tags": [],
       "summary": ""
@@ -2223,6 +2448,15 @@
       "type": "function",
       "filePath": "src/lora_lab/scorers/identity.py",
       "name": "embed",
+      "language": "python",
+      "tags": [],
+      "summary": ""
+    },
+    {
+      "id": "function:src/lora_lab/scorers/identity.py:embed_files",
+      "type": "function",
+      "filePath": "src/lora_lab/scorers/identity.py",
+      "name": "embed_files",
       "language": "python",
       "tags": [],
       "summary": ""
@@ -2543,8 +2777,36 @@
       "weight": 1.0
     },
     {
+      "source": "file:src/lora_lab/analyze/agreement.py",
+      "target": "file:external:json",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/agreement.py",
+      "target": "file:src/lora_lab/db.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/report.py",
+      "target": "file:external:dataclasses",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
       "source": "file:src/lora_lab/analyze/report.py",
       "target": "file:external:json",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/report.py",
+      "target": "file:src/lora_lab/analyze/agreement.py",
       "type": "imports",
       "direction": "forward",
       "weight": 1.0
@@ -2614,6 +2876,20 @@
     },
     {
       "source": "file:src/lora_lab/analyze/stats.py",
+      "target": "file:src/lora_lab/scorers/defects.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/stats.py",
+      "target": "function:src/lora_lab/analyze/stats.py:_two_level_bootstrap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/stats.py",
       "target": "function:src/lora_lab/analyze/stats.py:analyse_all",
       "type": "contains",
       "direction": "forward",
@@ -2649,6 +2925,13 @@
     },
     {
       "source": "file:src/lora_lab/analyze/stats.py",
+      "target": "function:src/lora_lab/analyze/stats.py:is_critical",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/stats.py",
       "target": "function:src/lora_lab/analyze/stats.py:is_fail",
       "type": "contains",
       "direction": "forward",
@@ -2664,6 +2947,13 @@
     {
       "source": "file:src/lora_lab/analyze/stats.py",
       "target": "function:src/lora_lab/analyze/stats.py:mean",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/stats.py",
+      "target": "function:src/lora_lab/analyze/stats.py:paired_difference",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -2707,6 +2997,41 @@
       "source": "file:src/lora_lab/analyze/stats.py",
       "target": "function:src/lora_lab/analyze/stats.py:weighted",
       "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/tournament.py",
+      "target": "file:external:collections.abc",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/tournament.py",
+      "target": "file:external:math",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/tournament.py",
+      "target": "file:external:random",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/tournament.py",
+      "target": "file:external:typing",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/analyze/tournament.py",
+      "target": "file:src/lora_lab/analyze/stats.py",
+      "type": "imports",
       "direction": "forward",
       "weight": 1.0
     },
@@ -2790,6 +3115,13 @@
     {
       "source": "file:src/lora_lab/cli.py",
       "target": "file:external:sys",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/cli.py",
+      "target": "file:src/lora_lab/analyze/agreement.py",
       "type": "imports",
       "direction": "forward",
       "weight": 1.0
@@ -2887,6 +3219,13 @@
     },
     {
       "source": "file:src/lora_lab/cli.py",
+      "target": "file:src/lora_lab/scorers/identity.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/cli.py",
       "target": "file:src/lora_lab/scorers/run.py",
       "type": "imports",
       "direction": "forward",
@@ -2929,7 +3268,21 @@
     },
     {
       "source": "file:src/lora_lab/cli.py",
+      "target": "function:src/lora_lab/cli.py:_calibrate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/cli.py",
       "target": "function:src/lora_lab/cli.py:_check_refs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/cli.py",
+      "target": "function:src/lora_lab/cli.py:_compare",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -3426,6 +3779,13 @@
     },
     {
       "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:add_comparison",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
       "target": "function:src/lora_lab/db.py:add_image",
       "type": "contains",
       "direction": "forward",
@@ -3455,6 +3815,13 @@
     {
       "source": "file:src/lora_lab/db.py",
       "target": "function:src/lora_lab/db.py:commit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:comparisons",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -3517,6 +3884,34 @@
     },
     {
       "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:judge_meta",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:label_count",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:labels",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:next_label_image",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
       "target": "function:src/lora_lab/db.py:pending_jobs",
       "type": "contains",
       "direction": "forward",
@@ -3567,6 +3962,13 @@
     {
       "source": "file:src/lora_lab/db.py",
       "target": "function:src/lora_lab/db.py:scored_images",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py",
+      "target": "function:src/lora_lab/db.py:set_labels",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -3629,6 +4031,13 @@
     },
     {
       "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:add_comparison",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
       "target": "function:src/lora_lab/db.py:add_image",
       "type": "contains",
       "direction": "forward",
@@ -3658,6 +4067,13 @@
     {
       "source": "file:src/lora_lab/db.py::Store",
       "target": "function:src/lora_lab/db.py:commit",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:comparisons",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -3720,6 +4136,34 @@
     },
     {
       "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:judge_meta",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:label_count",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:labels",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:next_label_image",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
       "target": "function:src/lora_lab/db.py:pending_jobs",
       "type": "contains",
       "direction": "forward",
@@ -3770,6 +4214,13 @@
     {
       "source": "file:src/lora_lab/db.py::Store",
       "target": "function:src/lora_lab/db.py:scored_images",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/db.py::Store",
+      "target": "function:src/lora_lab/db.py:set_labels",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -3923,6 +4374,13 @@
     },
     {
       "source": "file:src/lora_lab/heldout.py",
+      "target": "file:external:collections.abc",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/heldout.py",
       "target": "file:external:hashlib",
       "type": "imports",
       "direction": "forward",
@@ -3931,6 +4389,13 @@
     {
       "source": "file:src/lora_lab/heldout.py",
       "target": "file:external:pathlib",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/heldout.py",
+      "target": "file:src/lora_lab/scorers/identity.py",
       "type": "imports",
       "direction": "forward",
       "weight": 1.0
@@ -4168,6 +4633,20 @@
     },
     {
       "source": "file:src/lora_lab/scorers/defects.py",
+      "target": "class:src/lora_lab/scorers/defects.py:DefectQuestion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/defects.py",
+      "target": "class:src/lora_lab/scorers/defects.py:DefectScorer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/defects.py",
       "target": "class:src/lora_lab/scorers/defects.py:FaceCountScorer",
       "type": "contains",
       "direction": "forward",
@@ -4183,6 +4662,13 @@
     {
       "source": "file:src/lora_lab/scorers/defects.py",
       "target": "file:external:PIL",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/defects.py",
+      "target": "file:external:dataclasses",
       "type": "imports",
       "direction": "forward",
       "weight": 1.0
@@ -4245,6 +4731,20 @@
     },
     {
       "source": "file:src/lora_lab/scorers/defects.py",
+      "target": "function:src/lora_lab/scorers/defects.py:score",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/defects.py::DefectScorer",
+      "target": "function:src/lora_lab/scorers/defects.py:__init__",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/defects.py::DefectScorer",
       "target": "function:src/lora_lab/scorers/defects.py:score",
       "type": "contains",
       "direction": "forward",
@@ -4519,6 +5019,13 @@
     {
       "source": "file:src/lora_lab/scorers/identity.py",
       "target": "function:src/lora_lab/scorers/identity.py:embed",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/scorers/identity.py",
+      "target": "function:src/lora_lab/scorers/identity.py:embed_files",
       "type": "contains",
       "direction": "forward",
       "weight": 1.0
@@ -4945,6 +5452,13 @@
     },
     {
       "source": "file:src/lora_lab/web/app.py",
+      "target": "file:src/lora_lab/web/routes_review.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/app.py",
       "target": "file:src/lora_lab/web/routes_runs.py",
       "type": "imports",
       "direction": "forward",
@@ -5065,6 +5579,83 @@
     {
       "source": "file:src/lora_lab/web/routes_loras.py",
       "target": "file:src/lora_lab/web/store.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:external:fastapi",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:external:fastapi.responses",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:external:fastapi.templating",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:external:pathlib",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:external:urllib.parse",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/analyze/agreement.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/analyze/report.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/analyze/stats.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/analyze/tournament.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/db.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:src/lora_lab/web/routes_review.py",
+      "target": "file:src/lora_lab/scorers/defects.py",
       "type": "imports",
       "direction": "forward",
       "weight": 1.0
@@ -5932,6 +6523,126 @@
       "hint": "pytest_conftest"
     },
     {
+      "source": "file:tests/test_review.py",
+      "target": "file:external:PIL",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:external:fastapi.testclient",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:external:pathlib",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:external:pytest",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:external:random",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/analyze/agreement.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/analyze/report.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/analyze/stats.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/analyze/tournament.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/config.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/db.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/grid.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/heldout.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/scorers/base.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/scorers/defects.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:src/lora_lab/web/app.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_review.py",
+      "target": "file:tests/conftest.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 1.0,
+      "hint": "pytest_conftest"
+    },
+    {
       "source": "file:tests/test_scoring.py",
       "target": "file:external:PIL",
       "type": "tested_by",
@@ -6286,8 +6997,10 @@
         "file:src/lora_lab/__init__.py",
         "file:src/lora_lab/__main__.py",
         "file:src/lora_lab/analyze/__init__.py",
+        "file:src/lora_lab/analyze/agreement.py",
         "file:src/lora_lab/analyze/report.py",
         "file:src/lora_lab/analyze/stats.py",
+        "file:src/lora_lab/analyze/tournament.py",
         "file:src/lora_lab/audit.py",
         "file:src/lora_lab/cli.py",
         "file:src/lora_lab/comfy/__init__.py",
@@ -6313,6 +7026,7 @@
         "file:src/lora_lab/web/app.py",
         "file:src/lora_lab/web/broken.py",
         "file:src/lora_lab/web/routes_loras.py",
+        "file:src/lora_lab/web/routes_review.py",
         "file:src/lora_lab/web/routes_runs.py",
         "file:src/lora_lab/web/routes_setup.py",
         "file:src/lora_lab/web/runner.py",
@@ -6320,8 +7034,10 @@
         "file:src/lora_lab/web/static/app.js",
         "file:src/lora_lab/web/store.py",
         "file:src/lora_lab/web/templates/base.html",
+        "file:src/lora_lab/web/templates/duel.html",
         "file:src/lora_lab/web/templates/grid.html",
         "file:src/lora_lab/web/templates/index.html",
+        "file:src/lora_lab/web/templates/label.html",
         "file:src/lora_lab/web/templates/loras.html",
         "file:src/lora_lab/web/templates/refs.html",
         "file:src/lora_lab/web/templates/report.html",
@@ -6378,6 +7094,7 @@
         "file:tests/test_fizgig.py",
         "file:tests/test_grid.py",
         "file:tests/test_pipeline.py",
+        "file:tests/test_review.py",
         "file:tests/test_scoring.py",
         "file:tests/test_setup_ui.py",
         "file:tests/test_stats.py",
@@ -6472,9 +7189,9 @@
     },
     {
       "order": 9,
-      "target_path": "src/lora_lab/scorers/base.py",
+      "target_path": "src/lora_lab/db.py",
       "page_type": "file_page",
-      "title": "base.py",
+      "title": "db.py",
       "depth": 1,
       "kind": "code",
       "reason": "Directly used by the entry points above; a core collaborator.",
@@ -6524,8 +7241,10 @@
         "file:src/lora_lab/__init__.py",
         "file:src/lora_lab/__main__.py",
         "file:src/lora_lab/analyze/__init__.py",
+        "file:src/lora_lab/analyze/agreement.py",
         "file:src/lora_lab/analyze/report.py",
         "file:src/lora_lab/analyze/stats.py",
+        "file:src/lora_lab/analyze/tournament.py",
         "file:src/lora_lab/audit.py",
         "file:src/lora_lab/cli.py",
         "file:src/lora_lab/comfy/__init__.py",
@@ -6551,6 +7270,7 @@
         "file:src/lora_lab/web/app.py",
         "file:src/lora_lab/web/broken.py",
         "file:src/lora_lab/web/routes_loras.py",
+        "file:src/lora_lab/web/routes_review.py",
         "file:src/lora_lab/web/routes_runs.py",
         "file:src/lora_lab/web/routes_setup.py",
         "file:src/lora_lab/web/runner.py",
@@ -6558,8 +7278,10 @@
         "file:src/lora_lab/web/static/app.js",
         "file:src/lora_lab/web/store.py",
         "file:src/lora_lab/web/templates/base.html",
+        "file:src/lora_lab/web/templates/duel.html",
         "file:src/lora_lab/web/templates/grid.html",
         "file:src/lora_lab/web/templates/index.html",
+        "file:src/lora_lab/web/templates/label.html",
         "file:src/lora_lab/web/templates/loras.html",
         "file:src/lora_lab/web/templates/refs.html",
         "file:src/lora_lab/web/templates/report.html",
@@ -6619,6 +7341,7 @@
         "file:tests/test_fizgig.py",
         "file:tests/test_grid.py",
         "file:tests/test_pipeline.py",
+        "file:tests/test_review.py",
         "file:tests/test_scoring.py",
         "file:tests/test_setup_ui.py",
         "file:tests/test_stats.py",

@@ -343,7 +343,7 @@ def test_build_default_scorers_shared_stack(root: Path) -> None:
         name = "fake"
         version = "v1"
 
-        def judge(self, image, attributes):
+        def judge(self, image, attributes, prompt=None):
             return {a.id: True for a in attributes}
 
     project = load_project(root, use_local=False)

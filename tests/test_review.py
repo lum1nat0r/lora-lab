@@ -61,7 +61,7 @@ class FakeJudge:
     def __init__(self, answers: dict) -> None:
         self.answers = answers
 
-    def judge(self, image, attributes):
+    def judge(self, image, attributes, prompt=None):
         return {a.id: self.answers.get(a.id) for a in attributes}
 
 
@@ -77,6 +77,23 @@ def test_defect_scorer_records_detected_absent_missing() -> None:
     assert score.meta["detected"] == ["extra_limb"]
     assert score.meta["absent"] == ["text_watermark"]
     assert "blur_lowres" in score.meta["missing"]
+
+
+def test_defect_scorer_asks_prompt_defects_only_with_prompt() -> None:
+    class Recorder(FakeJudge):
+        def judge(self, image, attributes, prompt=None):
+            self.seen = (prompt, [a.id for a in attributes])
+            return super().judge(image, attributes)
+
+    judge = Recorder({"clothing_ignored": True})
+    (score,) = DefectScorer(judge, {"sc": "red dress"}).score(IMAGE)
+    assert judge.seen[0] == "red dress"
+    assert "clothing_ignored" in judge.seen[1]
+    assert score.meta["detected"] == ["clothing_ignored"]
+
+    DefectScorer(judge, {"other": "x"}).score(IMAGE)
+    assert judge.seen[0] is None
+    assert "clothing_ignored" not in judge.seen[1]
 
 
 def test_defect_scorer_without_answers_is_none() -> None:

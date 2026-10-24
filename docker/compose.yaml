@@ -24,6 +24,8 @@ services:
       # optional: local VLM judge (vLLM / llama.cpp / Ollama, OpenAI dialect)
       VLM_JUDGE_URL: ${VLM_JUDGE_URL:-}
       VLM_JUDGE_MODEL: ${VLM_JUDGE_MODEL:-}
+      # nav link to the Fizgig trainer UI (opened by the browser, not the container)
+      FIZGIG_URL: ${FIZGIG_URL:-http://localhost}
       TZ: Europe/Vienna
     volumes:
       # required
